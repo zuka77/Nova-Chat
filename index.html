@@ -46,6 +46,9 @@ display:grid;place-items:center;flex:none
 }
 .svg{width:20px;height:20px;display:block}
 .circle .svg{width:19px;height:19px}
+.notifBtn{position:relative}
+.notifBadge{position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ff2d55;color:#fff;font-size:10px;font-weight:900;display:grid;place-items:center;border:2px solid var(--bg);line-height:1}
+.notifBadge:empty{display:none}
 .screen{display:none;padding:13px}
 .screen.active{display:block;animation:screenIn .22s ease}
 @keyframes screenIn{
@@ -829,7 +832,8 @@ width:min(680px,100vw)
 </svg>
 </button>
 
-<button class="circle" data-action="notifications" aria-label="Notifications">
+<button class="circle notifBtn" data-action="notifications" aria-label="Notifications">
+<span id="notifBadge" class="notifBadge"></span>
 <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
 <path d="M10 21h4"/>
@@ -1188,8 +1192,8 @@ isOwner(id){
   const mapped=window.NOVA_OWNER_UID||"";
   const me=this.user(target)||this.user(fu.uid);
   return !!(
-    (target===fu.uid && me?.owner===true) ||
-    (mapped && target===mapped && fu.uid===mapped)
+    (mapped && target===mapped && fu.uid===mapped) ||
+    (target===fu.uid && me?.owner===true)
   );
 },
 
@@ -1253,6 +1257,14 @@ if(u)u.followers=Math.max(0,u.followers-1);
 this.save()
 },
 
+updateNotificationBadge(){
+const el=$("notifBadge");
+if(!el)return;
+const n=(Array.isArray(this.notifications)?this.notifications:[])
+.filter(x=>!x.read).length;
+el.textContent=n>99?"99+":String(n||"");
+},
+
 notify(type,user,text,extra={}){
 if(!this.settings.notifications)return;
 
@@ -1267,7 +1279,8 @@ read:false,
 });
 
 this.notifications=this.notifications.slice(0,100);
-this.save()
+this.updateNotificationBadge();
+this.save();
 },
 
 chatKey(a,b){
@@ -1293,6 +1306,21 @@ m.reactionBy??={}
 return this.chats[k]
 },
 
+saveChatCloud(key){
+  if(!fAuth.currentUser||!key)return Promise.resolve(false);
+  const parts=String(key).split("__");
+  if(parts.length!==2||!parts.includes(fAuth.currentUser.uid))return Promise.resolve(false);
+  return fdb.collection("chats").doc(key).set({
+    participants:parts,
+    messages:Array.isArray(this.chats[key])?this.chats[key]:[],
+    updated:Date.now()
+  },{merge:true}).then(()=>true).catch(err=>{
+    console.error("NOVA chat cloud save failed:",err);
+    NOVA.toast("Chat save failed: "+(err?.message||"Firebase error"));
+    return false;
+  });
+},
+
 sendMessage(to,obj){
 
 let me=this.me()?.id;
@@ -1315,7 +1343,8 @@ reactionBy:{},
 
 arr.push(msg);
 
-this.save();
+const key=this.chatKey(me,to);
+this.saveChatCloud(key);
 
 return msg
 }
@@ -1589,13 +1618,15 @@ $("viewerIn").innerHTML=`
 
 ${ui.avatar(u,"sm")}
 
-<div>
+<div style="flex:1">
 <b>${ui.name(u)}</b>
 <div class="smallText">${NOVA.time(s.created)}</div>
 </div>
 
 </div>
 </div>
+
+${(u?.id===modules.db.me()?.id || modules.db.isOwner()) ? `<button class="viewerBtn" style="position:absolute;top:12px;right:55px;z-index:12" data-story-delete="${s.id}">🗑</button>` : ""}
 
 <button class="viewerClose" data-story-close>×</button>
 
@@ -2651,9 +2682,13 @@ await batch.commit();
 if(count)await batch.commit();
 
 modules.db.chats={};
+modules.db.save();
 NOVA.state.activeChat=null;
+NOVA.state.chatProfile=null;
+document.body.classList.remove("chat-open");
+NOVA.closeModal();
 NOVA.render("messages");
-NOVA.toast("All chats deleted ✓");
+NOVA.toast("All chats deleted for everyone ✓");
 }catch(e){
 console.error(e);
 NOVA.toast("Could not delete all chats: "+(e?.message||"permission error"));
@@ -2914,6 +2949,12 @@ let me=d.me();
 
 let users=(Array.isArray(d.users)?d.users:[]).filter(u=>u.id!==me.id);
 
+users.sort((a,b)=>{
+  const la=d.chat(me.id,a.id).at(-1)?.time||0;
+  const lb=d.chat(me.id,b.id).at(-1)?.time||0;
+  return lb-la;
+});
+
 $("messages").innerHTML=`
 
 <div class="title">Messages</div>
@@ -2924,6 +2965,7 @@ ${users.map(u=>{
 
 let arr=d.chat(me.id,u.id);
 let last=arr.at(-1);
+let unread=arr.filter(m=>m.from===u.id && !m.read).length;
 
 return`<button
 class="chatRow"
@@ -2947,6 +2989,7 @@ this.preview(last)||
 
 <div class="time">
 ${last?NOVA.time(last.time):""}
+${unread?`<span class="notifBadge" style="position:static;margin-top:5px">${unread>99?"99+":unread}</span>`:""}
 </div>
 
 </button>`
@@ -2976,8 +3019,10 @@ let u=d.user(id);
 let me=d.me().id;
 
 let arr=d.chat(me,id);
+arr.forEach(m=>{if(m.from===id)m.read=true});
 
 let key=d.chatKey(me,id);
+if(arr.some(m=>m.from===id && m.read))d.saveChatCloud(key);
 
 let theme=NOVA.state.chatTheme[key]||"dark";
 
@@ -3404,6 +3449,8 @@ replyTo:NOVA.state.replyTo||null
 if(!msg)
 return NOVA.toast("Message could not be sent");
 
+msg.read=false;
+
 if(id!==me){
 
 d.notify(
@@ -3773,6 +3820,7 @@ show(){
 let d=modules.db;
 
 d.notifications.forEach(n=>n.read=true);
+d.updateNotificationBadge();
 d.save();
 
 NOVA.modal(
@@ -4217,6 +4265,7 @@ this.show()
     ]);
 
     this.notifications=ns.exists?(ns.data().items||[]):[];
+    this.updateNotificationBadge();
     this.settings=st.exists?{
       notifications:true,online:true,autoplay:true,theme:"dark",
       ...(st.data()||{})
@@ -4290,6 +4339,7 @@ this.show()
 
     watch(notifDoc(uid),snap=>{
       this.notifications=snap.exists?(snap.data().items||[]):[];
+      this.updateNotificationBadge();
     });
 
     watch(settingsDoc(uid),snap=>{
@@ -4312,44 +4362,33 @@ this.show()
 
   modules.db.save=async function(){
     const me=this.me();
-    if(!me||!fAuth.currentUser)return;
+    if(!me||!fAuth.currentUser)return false;
 
     try{
       const batch=fdb.batch();
       batch.set(userDoc(me.id),clean(me),{merge:true});
-
-      const ns=this.notifications||[];
-      batch.set(notifDoc(me.id),{items:ns.slice(0,100),updated:Date.now()},{merge:true});
+      batch.set(notifDoc(me.id),{items:(this.notifications||[]).slice(0,100),updated:Date.now()},{merge:true});
       batch.set(settingsDoc(me.id),clean(this.settings||{}),{merge:true});
 
-      /* Public documents changed by this client. */
+      /* Only public documents owned by the current user are saved here.
+         Chats are saved separately so one oversized/broken chat cannot
+         make profile/settings/notifications fail together. */
       for(const p of (this.posts||[])){
-        if(p.user===me.id || this.isOwner()){
+        if(p.user===me.id || this.isOwner())
           batch.set(fdb.collection("posts").doc(p.id),clean(p),{merge:true});
-        }
       }
       for(const st of (this.stories||[])){
-        if(st.user===me.id || this.isOwner()){
+        if(st.user===me.id || this.isOwner())
           batch.set(fdb.collection("stories").doc(st.id),clean(st),{merge:true});
-        }
-      }
-
-      /* Chats belonging to this user. */
-      for(const key of Object.keys(this.chats||{})){
-        const parts=key.split("__");
-        if(parts.length===2 && parts.includes(me.id)){
-          batch.set(fdb.collection("chats").doc(key),{
-            participants:parts,
-            messages:this.chats[key]||[],
-            updated:Date.now()
-          },{merge:true});
-        }
       }
       await batch.commit();
+      this.updateNotificationBadge();
+      return true;
     }catch(err){
       console.error("NOVA cloud save failed:",err);
       window.NOVA_ONLINE_ERROR=err?.message||String(err);
-      NOVA.toast("Cloud save failed — check Firebase rules");
+      NOVA.toast("Cloud save failed: "+(err?.message||"Firebase error"));
+      return false;
     }
   };
 
@@ -4383,11 +4422,15 @@ this.show()
   modules.db.deleteStoryCloud=async function(id){
     try{
       const s=this.stories.find(x=>x.id===id);
-      if(!s)return;
-      if(s.user!==this.me()?.id && !this.isOwner())return;
+      if(!s)return false;
+      if(s.user!==this.me()?.id && !this.isOwner())return false;
       await fdb.collection("stories").doc(id).delete();
+      this.stories=(this.stories||[]).filter(x=>x.id!==id);
+      return true;
     }catch(e){
-      console.error(e);
+      console.error("NOVA story delete failed:",e);
+      NOVA.toast("Could not delete story: "+(e?.message||"Firebase error"));
+      return false;
     }
   };
 
@@ -4446,7 +4489,7 @@ this.show()
         id,
         name:n,
         handle:h,
-        bio:isOwner?"Official NOVA Owner 👑":"New on NOVA 🚀",
+        bio:"New on NOVA 🚀",
         avatar:"",
         followers:0,
         following:0,
@@ -4470,7 +4513,7 @@ this.show()
 
       auth.hide();
       NOVA.go("home");
-      NOVA.toast(isOwner?"Account created. Add this Firebase UID to config/owner to activate Owner ✓":"Account created 🚀");
+      NOVA.toast(isOwner?"Owner account created 👑":"Account created 🚀");
     }catch(ex){
       console.error(ex);
       let msg=ex?.code||"";
@@ -4688,6 +4731,8 @@ this.show()
 
   window.NOVA_UPLOAD_FILE=uploadFile;
 })();
+
+NOVA.updateNotificationBadge=()=>modules.db.updateNotificationBadge?.();
 
 NOVA.render=function(s){
 
@@ -4994,6 +5039,27 @@ if(e.target.closest("[data-story-reply]")){
 
 modules.stories.reply();
 return
+}
+
+let sd=e.target.closest("[data-story-delete]");
+
+if(sd){
+  const id=sd.dataset.storyDelete;
+  const story=modules.db.stories.find(x=>x.id===id);
+  if(story && (story.user===modules.db.me()?.id || modules.db.isOwner())){
+    if(confirm("Delete this story for everyone?")){
+      modules.db.stories=(modules.db.stories||[]).filter(x=>x.id!==id);
+      modules.db.deleteStoryCloud(id).then(ok=>{
+        if(ok!==false){
+          modules.db.save();
+          modules.stories.close();
+          NOVA.render("home");
+          NOVA.toast("Story deleted for everyone ✓");
+        }
+      });
+    }
+  }
+  return;
 }
 
 if(e.target.closest("[data-story-close]")){
