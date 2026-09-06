@@ -801,6 +801,13 @@ transform:translateX(-50%);
 width:min(680px,100vw)
 }
 }
+
+.storyMenuBtn{position:absolute;top:12px;right:55px;z-index:12}
+.modernDeleteIcon{width:20px;height:20px;display:block}
+.profileStoryRing{position:relative;display:inline-flex;padding:3px;border-radius:999px;background:conic-gradient(from 180deg,#ff2d55,#ff9f0a,#af52de,#ff2d55);cursor:pointer}
+.profileStoryRing .avatar{border:3px solid var(--bg)}
+.profileStoryRingBtn{border:0;background:none;padding:0;cursor:pointer}
+.stat.clickable{cursor:pointer}
 </style>
 </head>
 
@@ -1161,6 +1168,8 @@ send:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2
 
 const modules={};
 
+const NOVA_DELETE_SVG=`<svg class="modernDeleteIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4.8h6V7"/><path d="M7 7l.8 12h8.4L17 7"/><path d="M10 11v5M14 11v5"/></svg>`;
+
 modules.db={
 users:[],
 posts:[],
@@ -1225,44 +1234,55 @@ post(id){
 return this.posts.find(x=>x.id===id)
 },
 
+allPostComments(id){
+  const out=[];
+  (Array.isArray(this.users)?this.users:[]).forEach(u=>(u.postComments||[]).forEach(c=>{if(c.postId===id)out.push(c)}));
+  const p=this.post(id);
+  (p?.comments||[]).forEach(c=>{if(!out.some(x=>x.id===c.id))out.push(c)});
+  return out.sort((a,b)=>a.time-b.time);
+},
+
 following(id){
 return(this.me()?.followingUsers||[]).includes(id)
 },
 
+followingList(id){
+const u=this.user(id||this.me()?.id);
+return (u?.followingUsers||[]).map(x=>this.user(x)).filter(Boolean);
+},
+
+followerList(id){
+const target=String(id||this.me()?.id);
+return (Array.isArray(this.users)?this.users:[]).filter(u=>(u.followingUsers||[]).includes(target));
+},
+
+followerCount(id){return this.followerList(id).length},
+
 follow(id){
 let m=this.me(),u=this.user(id);
-if(!u||!m)return;
-
-m.followingUsers??=[];
-
-if(!m.followingUsers.includes(id)){
-m.followingUsers.push(id);
-m.following++;
-u.followers++;
-}
-
-this.save()
+if(!u||!m||id===m.id)return;
+m.followingUsers=Array.isArray(m.followingUsers)?m.followingUsers:[];
+if(!m.followingUsers.includes(id))m.followingUsers.push(id);
+this.save();
+this.saveUserCloud(m.id,{followingUsers:m.followingUsers});
 },
 
 unfollow(id){
-let m=this.me(),u=this.user(id);
-
-m.followingUsers=(m.followingUsers||[])
-.filter(x=>x!==id);
-
-m.following=Math.max(0,m.following-1);
-
-if(u)u.followers=Math.max(0,u.followers-1);
-
-this.save()
+let m=this.me();
+if(!m)return;
+m.followingUsers=(m.followingUsers||[]).filter(x=>x!==id);
+this.save();
+this.saveUserCloud(m.id,{followingUsers:m.followingUsers});
 },
 
 updateNotificationBadge(){
 const el=$("notifBadge");
 if(!el)return;
-const n=(Array.isArray(this.notifications)?this.notifications:[])
-.filter(x=>!x.read).length;
-el.textContent=n>99?"99+":String(n||"");
+const n=(Array.isArray(this.notifications)?this.notifications:[]).filter(x=>!x.read).length;
+const me=this.me()?.id;
+const chatUnread=me?Object.values(this.chats||{}).reduce((sum,arr)=>sum+(Array.isArray(arr)?arr.filter(m=>m.from!==me&&!m.read).length:0),0):0;
+const total=n+chatUnread;
+el.textContent=total>99?"99+":String(total||"");
 },
 
 notify(type,user,text,extra={}){
@@ -1306,13 +1326,22 @@ m.reactionBy??={}
 return this.chats[k]
 },
 
+saveUserCloud(uid,patch){
+  if(!uid||!fAuth.currentUser||fAuth.currentUser.uid!==uid)return Promise.resolve(false);
+  return userDoc(uid).set(clean(patch),{merge:true}).then(()=>true).catch(err=>{
+    console.error("NOVA user cloud save failed:",err);
+    NOVA.toast("Cloud save failed: "+(err?.message||"Firebase error"));
+    return false;
+  });
+},
+
 saveChatCloud(key){
   if(!fAuth.currentUser||!key)return Promise.resolve(false);
   const parts=String(key).split("__");
   if(parts.length!==2||!parts.includes(fAuth.currentUser.uid))return Promise.resolve(false);
   return fdb.collection("chats").doc(key).set({
     participants:parts,
-    messages:Array.isArray(this.chats[key])?this.chats[key]:[],
+    messages:Array.isArray(this.chats[key])?this.chats[key].map(m=>clean(m)):[],
     updated:Date.now()
   },{merge:true}).then(()=>true).catch(err=>{
     console.error("NOVA chat cloud save failed:",err);
@@ -1345,7 +1374,7 @@ arr.push(msg);
 
 const key=this.chatKey(me,to);
 this.saveChatCloud(key);
-
+this.updateNotificationBadge();
 return msg
 }
 };
@@ -1626,7 +1655,7 @@ ${ui.avatar(u,"sm")}
 </div>
 </div>
 
-${(u?.id===modules.db.me()?.id || modules.db.isOwner()) ? `<button class="viewerBtn" style="position:absolute;top:12px;right:55px;z-index:12" data-story-delete="${s.id}">🗑</button>` : ""}
+${(u?.id===modules.db.me()?.id || modules.db.isOwner()) ? `<button class="viewerBtn storyMenuBtn" data-story-menu="${s.id}">•••</button>` : ""}
 
 <button class="viewerClose" data-story-close>×</button>
 
@@ -1766,24 +1795,13 @@ if(!s)return;
 
 let me=modules.db.me().id;
 
-s.reactions??={};
-
-let current=null;
-
-Object.keys(s.reactions).forEach(k=>{
-
-if((s.reactions[k]||[]).includes(me))
-current=k;
-
-s.reactions[k]=(s.reactions[k]||[])
-.filter(x=>x!==me);
-
-});
-
-if(current!==type){
-
-s.reactions[type]??=[];
-s.reactions[type].push(me);
+let owner=modules.db.me();
+owner.storyReactions=owner.storyReactions||{};
+let current=owner.storyReactions[s.id]||null;
+if(current===type) delete owner.storyReactions[s.id]; else owner.storyReactions[s.id]=type;
+s.reactions=s.reactions||{};
+Object.keys(s.reactions).forEach(k=>s.reactions[k]=(s.reactions[k]||[]).filter(x=>x!==me));
+if(owner.storyReactions[s.id]){s.reactions[owner.storyReactions[s.id]]=[...(s.reactions[owner.storyReactions[s.id]]||[]),me];
 
 if(s.user!==me){
 
@@ -1797,6 +1815,7 @@ me,
 }
 }
 
+modules.db.saveUserCloud(me,{storyReactions:owner.storyReactions});
 modules.db.save();
 
 this.show();
@@ -1835,7 +1854,7 @@ modules.db.sendMessage(
 s.user,
 {
 kind:"text",
-text:text,
+text:`Story: ${s.text||"Photo/video story"}\nReply: ${text}`,
 replyTo:null,
 storyId:s.id,
 storyReply:true
@@ -2008,11 +2027,10 @@ let d=modules.db;
 let u=d.user(p.user);
 let me=d.me().id;
 
-let liked=(p.likes||[]).includes(me);
-let saved=(p.savedBy||[]).includes(me);
+let liked=(modules.db.me()?.likedPosts||[]).includes(p.id) || (p.likes||[]).includes(me);
+let saved=(modules.db.me()?.savedPosts||[]).includes(p.id) || (p.savedBy||[]).includes(me);
 
-let myReact=Object.keys(p.reactions||{})
-.find(k=>(p.reactions[k]||[]).includes(me));
+let myReact=modules.db.me()?.postReactions?.[p.id] || Object.keys(p.reactions||{}).find(k=>(p.reactions[k]||[]).includes(me));
 
 let reactCount=Object.values(p.reactions||{})
 .reduce((a,b)=>a+b.length,0);
@@ -2087,52 +2105,30 @@ ${NOVA.esc(p.comments.at(-1).text)}
 },
 
 like(id){
-
-let d=modules.db;
-let p=d.post(id);
-let m=d.me().id;
-
-p.likes??=[];
-
-if(p.likes.includes(m)){
-
-p.likes=p.likes.filter(x=>x!==m)
-
-}else{
-
-p.likes.push(m);
-
-if(p.user!==m){
-
-d.notify(
-"like",
-m,
-"liked your post",
-{postId:id}
-);
-
-}
-}
-
+let d=modules.db,p=d.post(id),m=d.me();
+if(!p||!m)return;
+m.likedPosts=Array.isArray(m.likedPosts)?m.likedPosts:[];
+const has=m.likedPosts.includes(id);
+m.likedPosts=has?m.likedPosts.filter(x=>x!==id):[...m.likedPosts,id];
+p.likes=Array.isArray(p.likes)?p.likes:[];
+p.likes=has?p.likes.filter(x=>x!==m.id):[...new Set([...p.likes,m.id])];
+if(p.user!==m.id && !has) d.notify("like",m.id,"liked your post",{postId:id});
+d.saveUserCloud(m.id,{likedPosts:m.likedPosts});
 d.save();
 NOVA.render(NOVA.state.screen)
 },
 
 save(id){
-
-let p=modules.db.post(id);
-let m=modules.db.me().id;
-
-p.savedBy??=[];
-
-p.savedBy.includes(m)
-?p.savedBy=p.savedBy.filter(x=>x!==m)
-:p.savedBy.push(m);
-
-modules.db.save();
+let d=modules.db,p=d.post(id),m=d.me();
+if(!p||!m)return;
+m.savedPosts=Array.isArray(m.savedPosts)?m.savedPosts:[];
+const has=m.savedPosts.includes(id);
+m.savedPosts=has?m.savedPosts.filter(x=>x!==id):[...m.savedPosts,id];
+p.savedBy=has?(p.savedBy||[]).filter(x=>x!==m.id):[...new Set([...(p.savedBy||[]),m.id])];
+d.saveUserCloud(m.id,{savedPosts:m.savedPosts});
+d.save();
 NOVA.render(NOVA.state.screen)
 },
-
 repost(id){
 
 let d=modules.db;
@@ -2186,47 +2182,20 @@ ${ui.reaction(x)}
 },
 
 react(id,type){
-
-let d=modules.db;
-let p=d.post(id);
-let m=d.me().id;
-
-p.reactions??={};
-
-let current=null;
-
-Object.keys(p.reactions).forEach(k=>{
-
-if((p.reactions[k]||[]).includes(m))
-current=k;
-
-p.reactions[k]=(p.reactions[k]||[])
-.filter(x=>x!==m);
-
-});
-
-if(current!==type){
-
-p.reactions[type]??=[];
-p.reactions[type].push(m);
-
-if(p.user!==m){
-
-d.notify(
-"reaction",
-m,
-"reacted to your post",
-{postId:id}
-);
-
-}
-}
-
-d.save();
+let p=modules.db.post(id),m=modules.db.me();
+if(!p||!m)return;
+m.postReactions=m.postReactions||{};
+const current=m.postReactions[id]||null;
+if(current===type) delete m.postReactions[id]; else m.postReactions[id]=type;
+p.reactions=p.reactions||{};
+Object.keys(p.reactions).forEach(k=>p.reactions[k]=(p.reactions[k]||[]).filter(x=>x!==m.id));
+if(m.postReactions[id]){p.reactions[m.postReactions[id]]=[...(p.reactions[m.postReactions[id]]||[]),m.id];}
+if(p.user!==m.id && current!==type) modules.db.notify("reaction",m.id,"reacted to your post",{postId:id});
+modules.db.saveUserCloud(m.id,{postReactions:m.postReactions});
+modules.db.save();
 NOVA.closeModal();
 NOVA.render(NOVA.state.screen)
 },
-
 comments(id){
 
 let p=modules.db.post(id);
@@ -2236,7 +2205,7 @@ NOVA.modal("Comments",`
 
 <div class="comments">
 
-${p.comments.map(c=>{
+${d.allPostComments(id).map(c=>{
 
 let u=d.user(c.user);
 
@@ -2273,37 +2242,20 @@ Send
 },
 
 addComment(id){
-
 let v=$("commentInput")?.value.trim();
-
 if(!v)return;
-
-let p=modules.db.post(id);
-let me=modules.db.me().id;
-
-p.comments.push({
-id:NOVA.uid("comment"),
-user:me,
-text:v,
-time:Date.now()
-});
-
-if(p.user!==me){
-
-modules.db.notify(
-"comment",
-me,
-"commented on your post",
-{postId:id}
-);
-
-}
-
-modules.db.save();
+let d=modules.db,m=d.me(),p=d.post(id);
+if(!m||!p)return;
+m.postComments=Array.isArray(m.postComments)?m.postComments:[];
+m.postComments.push({id:NOVA.uid("comment"),postId:id,user:m.id,text:v,time:Date.now()});
+p.comments=Array.isArray(p.comments)?p.comments:[];
+p.comments.push(m.postComments.at(-1));
+if(p.user!==m.id)d.notify("comment",m.id,"commented on your post",{postId:id});
+d.saveUserCloud(m.id,{postComments:m.postComments});
+d.save();
 NOVA.closeModal();
 NOVA.render(NOVA.state.screen)
 },
-
 share(id){
 
 let p=modules.db.post(id);
@@ -2622,7 +2574,7 @@ Give or remove the official blue badge from NOVA users.
 
 <div class="card" style="margin:0 0 12px">
 <div class="option" data-action="ownerDeleteAllChats">
-<div class="icon">🗑</div>
+<div class="icon">${NOVA_DELETE_SVG}</div>
 <div class="optionMain">
 <b>Delete all chats</b>
 <span>Clear every NOVA conversation for everyone</span>
@@ -2682,7 +2634,7 @@ await batch.commit();
 if(count)await batch.commit();
 
 modules.db.chats={};
-modules.db.save();
+modules.db.updateNotificationBadge();
 NOVA.state.activeChat=null;
 NOVA.state.chatProfile=null;
 document.body.classList.remove("chat-open");
@@ -2691,7 +2643,8 @@ NOVA.render("messages");
 NOVA.toast("All chats deleted for everyone ✓");
 }catch(e){
 console.error(e);
-NOVA.toast("Could not delete all chats: "+(e?.message||"permission error"));
+const msg=e?.code==="permission-denied"?"Owner cloud access is not linked to this Firebase account yet.":(e?.message||"Firebase error");
+NOVA.toast("Could not delete all chats: "+msg);
 }
 }
 };
@@ -2738,7 +2691,7 @@ $("profile").innerHTML=`
 
 <div class="card profile">
 
-${ui.avatar(u,"big")}
+${stories.length?`<button class="profileStoryRingBtn" data-profile-story="${id}" aria-label="View story"><span class="profileStoryRing">${ui.avatar(u,"big")}</span></button>`:ui.avatar(u,"big")}
 
 <div class="profileName">
 ${ui.name(u)}
@@ -2759,15 +2712,9 @@ ${NOVA.esc(u.bio)}
 <span>Posts</span>
 </div>
 
-<div class="stat">
-<b>${u.followers}</b>
-<span>Followers</span>
-</div>
+<button class="stat clickable" data-followers="${id}"><b>${d.followerCount(id)}</b><span>Followers</span></button>
 
-<div class="stat">
-<b>${u.following}</b>
-<span>Following</span>
-</div>
+<button class="stat clickable" data-following="${id}"><b>${(u.followingUsers||[]).length}</b><span>Following</span></button>
 
 </div>
 
@@ -2812,16 +2759,11 @@ ${!own
 
 <div class="card">
 
-<div class="option">
-
-<div class="icon">○</div>
-
-<div class="optionMain">
-<b>Stories</b>
-<span>${stories.length} stories</span>
-</div>
-
-</div>
+<button class="option" data-profile-story="${id}" style="width:100%;text-align:left">
+<div class="profileStoryRingBtn"><span class="profileStoryRing">${ui.avatar(u,"sm")}</span></div>
+<div class="optionMain"><b>Stories</b><span>${stories.length} ${stories.length===1?"story":"stories"}</span></div>
+›
+</button>
 
 <div class="profileGrid">
 
@@ -3019,10 +2961,11 @@ let u=d.user(id);
 let me=d.me().id;
 
 let arr=d.chat(me,id);
+let hadUnread=arr.some(m=>m.from===id&&!m.read);
 arr.forEach(m=>{if(m.from===id)m.read=true});
 
 let key=d.chatKey(me,id);
-if(arr.some(m=>m.from===id && m.read))d.saveChatCloud(key);
+if(hadUnread){d.saveChatCloud(key);d.updateNotificationBadge();}
 
 let theme=NOVA.state.chatTheme[key]||"dark";
 
@@ -3451,16 +3394,6 @@ return NOVA.toast("Message could not be sent");
 
 msg.read=false;
 
-if(id!==me){
-
-d.notify(
-"message",
-me,
-"sent you a message",
-{chat:id}
-);
-
-}
 
 NOVA.state.replyTo=null;
 
@@ -3499,15 +3432,6 @@ name:f.name
 
 if(msg){
 
-modules.db.notify(
-"message",
-modules.db.me().id,
-type==="image"
-?"sent a photo"
-:"sent a video",
-{chat:id}
-);
-
 this.chat(id);
 
 NOVA.toast(type==="image"?"Photo sent":"Video sent")
@@ -3519,115 +3443,34 @@ input.click()
 },
 
 async record(id){
-
-if(
-!navigator.mediaDevices?.getUserMedia||
-!window.MediaRecorder
-)
-return NOVA.toast(
-"Voice recording is not supported in this browser"
-);
-
-if(NOVA.recording)
-return;
-
+if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)return NOVA.toast("Voice recording is not supported in this browser");
+if(NOVA.recording)return;
 try{
-
-let stream=
-await navigator.mediaDevices.getUserMedia({audio:true});
-
-let chunks=[];
-
+const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+const chunks=[];
 let mime="";
-
-if(MediaRecorder.isTypeSupported("audio/webm;codecs=opus"))
-mime="audio/webm;codecs=opus";
-else if(MediaRecorder.isTypeSupported("audio/webm"))
-mime="audio/webm";
-
-let rec=mime
-?new MediaRecorder(stream,{mimeType:mime})
-:new MediaRecorder(stream);
-
-NOVA.recording=rec;
-NOVA.recordingStarted=Date.now();
-
-let btn=$("voiceBtn");
-
-btn?.classList.add("recording");
-
-rec.ondataavailable=e=>{
-if(e.data.size)
-chunks.push(e.data)
-};
-
-rec.onstop=()=>{
-
+if(MediaRecorder.isTypeSupported("audio/webm;codecs=opus"))mime="audio/webm;codecs=opus";
+else if(MediaRecorder.isTypeSupported("audio/webm"))mime="audio/webm";
+const rec=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
+NOVA.recording=rec; NOVA.recordingStarted=Date.now();
+const btn=$("voiceBtn"); btn?.classList.add("recording");
+rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+rec.onstop=async()=>{
 stream.getTracks().forEach(t=>t.stop());
-
-let duration=Math.max(
-1,
-Math.round(
-(Date.now()-NOVA.recordingStarted)/1000
-)
-);
-
-let blob=new Blob(chunks,{
-type:rec.mimeType||"audio/webm"
-});
-
-let reader=new FileReader;
-
-reader.onload=()=>{
-
-let msg=modules.db.sendMessage(
-id,
-{
-kind:"voice",
-data:reader.result,
-duration,
-voiceLiked:[]
-}
-);
-
-NOVA.recording=null;
-
-if(btn)
-btn.classList.remove("recording");
-
-if(msg){
-
-modules.db.notify(
-"message",
-modules.db.me().id,
-"sent a voice message",
-{chat:id}
-);
-
-this.chat(id);
-NOVA.toast("Voice sent")
-
-}
-
+const duration=Math.max(1,Math.round((Date.now()-NOVA.recordingStarted)/1000));
+const blob=new Blob(chunks,{type:rec.mimeType||"audio/webm"});
+try{
+const audioFile=new File([blob],`voice-${Date.now()}.webm`,{type:blob.type||"audio/webm"});
+const data=await uploadFile(audioFile,`nova/chats/${modules.db.me().id}`);
+if(!data)throw new Error("Voice upload failed");
+const msg=modules.db.sendMessage(id,{kind:"voice",data,duration,voiceLiked:[]});
+NOVA.recording=null; btn?.classList.remove("recording");
+if(msg){ this.chat(id); NOVA.toast("Voice sent") }
+}catch(err){NOVA.recording=null;btn?.classList.remove("recording");NOVA.toast("Voice upload failed")}
 };
-
-reader.readAsDataURL(blob)
-
-};
-
 rec.start();
-
 NOVA.toast("Recording… release to send");
-
-}catch(e){
-
-NOVA.recording=null;
-
-$("voiceBtn")?.classList.remove("recording");
-
-NOVA.toast("Microphone permission is needed")
-
-}
+}catch(e){NOVA.recording=null;$("voiceBtn")?.classList.remove("recording");NOVA.toast("Microphone permission is needed")}
 },
 
 stopRecord(){
@@ -4293,10 +4136,14 @@ this.show()
     realtimeRenderTimer=setTimeout(()=>{
       try{
         if(!auth.session || !modules.db.me())return;
+        modules.db.updateNotificationBadge();
+        if($("modalBg")?.classList.contains("open") || $("viewer")?.classList.contains("open"))return;
+        const active=document.activeElement;
+        if(active?.id==="messageInput" || active?.id==="commentInput")return;
         const screen=NOVA.state?.screen||"home";
         NOVA.render(screen);
       }catch(e){ console.error("NOVA realtime render failed:",e); }
-    },60);
+    },120);
   };
 
   modules.db.stopRealtime=function(){
@@ -4374,11 +4221,11 @@ this.show()
          Chats are saved separately so one oversized/broken chat cannot
          make profile/settings/notifications fail together. */
       for(const p of (this.posts||[])){
-        if(p.user===me.id || this.isOwner())
+        if(p.user===me.id)
           batch.set(fdb.collection("posts").doc(p.id),clean(p),{merge:true});
       }
       for(const st of (this.stories||[])){
-        if(st.user===me.id || this.isOwner())
+        if(st.user===me.id)
           batch.set(fdb.collection("stories").doc(st.id),clean(st),{merge:true});
       }
       await batch.commit();
@@ -4397,11 +4244,11 @@ this.show()
     if(!me)return;
     const jobs=[];
     for(const p of (this.posts||[])){
-      if(p.user===me.id||this.isOwner())
+      if(p.user===me.id)
         jobs.push(fdb.collection("posts").doc(p.id).set(clean(p),{merge:true}));
     }
     for(const st of (this.stories||[])){
-      if(st.user===me.id||this.isOwner())
+      if(st.user===me.id)
         jobs.push(fdb.collection("stories").doc(st.id).set(clean(st),{merge:true}));
     }
     await Promise.all(jobs);
@@ -4410,20 +4257,21 @@ this.show()
   modules.db.deletePostCloud=async function(id){
     try{
       const p=this.post(id);
-      if(!p)return;
-      if(p.user!==this.me()?.id && !this.isOwner())return;
+      if(p && p.user!==this.me()?.id && !this.isOwner())return false;
       await fdb.collection("posts").doc(id).delete();
+      this.posts=(this.posts||[]).filter(x=>x.id!==id);
+      return true;
     }catch(e){
       console.error(e);
-      NOVA.toast("Could not delete post from cloud");
+      NOVA.toast("Could not delete post: "+(e?.message||"Firebase error"));
+      return false;
     }
   };
 
-  modules.db.deleteStoryCloud=async function(id){
+  modules.db.deleteStoryCloud=async function(id,storyOverride){
     try{
-      const s=this.stories.find(x=>x.id===id);
-      if(!s)return false;
-      if(s.user!==this.me()?.id && !this.isOwner())return false;
+      const s=storyOverride||this.stories.find(x=>x.id===id);
+      if(s && s.user!==this.me()?.id && !this.isOwner())return false;
       await fdb.collection("stories").doc(id).delete();
       this.stories=(this.stories||[]).filter(x=>x.id!==id);
       return true;
@@ -4493,7 +4341,7 @@ this.show()
         avatar:"",
         followers:0,
         following:0,
-        followingUsers:[],
+        followingUsers:[],likedPosts:[],savedPosts:[],postReactions:{},postComments:[],storyReactions:{},
         online:true,
         verified:!!isOwner,
         owner:!!isOwner,
@@ -4889,13 +4737,12 @@ messageId:id
 }
 }
 
+modules.db.saveChatCloud(modules.db.chatKey(modules.db.me().id,NOVA.state.activeChat));
 modules.db.save();
 
 closeLong();
 
-modules.messages.chat(
-NOVA.state.activeChat
-)
+modules.messages.chat(NOVA.state.activeChat)
 }
 
 function deleteMessage(id){
@@ -4917,14 +4764,12 @@ m.text="";
 m.data="";
 m.reactionBy={};
 
+modules.db.saveChatCloud(modules.db.chatKey(modules.db.me().id,NOVA.state.activeChat));
 modules.db.save();
 
 closeLong();
 
-modules.messages.chat(
-NOVA.state.activeChat
-);
-
+modules.messages.chat(NOVA.state.activeChat);
 NOVA.toast("Message deleted")
 }
 }
@@ -5041,23 +4886,22 @@ modules.stories.reply();
 return
 }
 
-let sd=e.target.closest("[data-story-delete]");
-
-if(sd){
-  const id=sd.dataset.storyDelete;
+let stm=e.target.closest("[data-story-menu]");
+if(stm){
+  const id=stm.dataset.storyMenu;
   const story=modules.db.stories.find(x=>x.id===id);
   if(story && (story.user===modules.db.me()?.id || modules.db.isOwner())){
-    if(confirm("Delete this story for everyone?")){
-      modules.db.stories=(modules.db.stories||[]).filter(x=>x.id!==id);
-      modules.db.deleteStoryCloud(id).then(ok=>{
-        if(ok!==false){
-          modules.db.save();
-          modules.stories.close();
-          NOVA.render("home");
-          NOVA.toast("Story deleted for everyone ✓");
-        }
-      });
-    }
+    NOVA.modal("Story options",`<div class="card"><button class="option" data-story-delete-confirm="${id}" style="width:100%;text-align:left"><div class="icon">${NOVA_DELETE_SVG}</div><div class="optionMain"><b>Delete story</b><span>Remove it for everyone</span></div>›</button></div>`);
+  }
+  return;
+}
+let sdc=e.target.closest("[data-story-delete-confirm]");
+if(sdc){
+  const id=sdc.dataset.storyDeleteConfirm, story=modules.db.stories.find(x=>x.id===id);
+  if(story && (story.user===modules.db.me()?.id || modules.db.isOwner()) && confirm("Delete this story for everyone?")){
+    modules.db.deleteStoryCloud(id,story).then(ok=>{
+      if(ok){ modules.db.stories=(modules.db.stories||[]).filter(x=>x.id!==id); NOVA.closeModal(); modules.stories.close(); NOVA.render(NOVA.state.screen); NOVA.toast("Story deleted for everyone ✓"); }
+    });
   }
   return;
 }
@@ -5080,6 +4924,9 @@ modules.stories.prev();
 return
 }
 
+let ps=e.target.closest("[data-profile-story]");
+if(ps){ modules.stories.openUser(ps.dataset.profileStory); return; }
+
 let pf=e.target.closest("[data-profile-tab]");
 
 if(pf){
@@ -5098,6 +4945,11 @@ owner===modules.db.me().id
 
 return
 }
+
+let followersBtn=e.target.closest("[data-followers]");
+if(followersBtn){ const id=followersBtn.dataset.followers; const list=modules.db.followerList(id); NOVA.modal("Followers",`<div class="card">${list.map(u=>`<div class="people" data-user="${u.id}">${ui.avatar(u,"sm")}<div class="userInfo"><div class="name">${ui.name(u)}</div><div class="handle">${NOVA.esc(u.handle||"")}</div></div></div>`).join("")||`<div class="empty">No followers yet</div>`}</div>`); return; }
+let followingBtn=e.target.closest("[data-following]");
+if(followingBtn){ const id=followingBtn.dataset.following; const list=modules.db.followingList(id); NOVA.modal("Following",`<div class="card">${list.map(u=>`<div class="people" data-user="${u.id}">${ui.avatar(u,"sm")}<div class="userInfo"><div class="name">${ui.name(u)}</div><div class="handle">${NOVA.esc(u.handle||"")}</div></div></div>`).join("")||`<div class="empty">Not following anyone yet</div>`}</div>`); return; }
 
 let fl=e.target.closest("[data-follow]");
 
@@ -5203,18 +5055,9 @@ if(menu.dataset.menu==="delete"){
 if(confirm("Delete this post?")){
 
 const deletingId=menu.dataset.id;
-modules.db.posts=(Array.isArray(modules.db.posts)?modules.db.posts:[]).filter(
-x=>x.id!==deletingId
-);
-
-modules.db.save();
-modules.db.deletePostCloud(deletingId);
-
-NOVA.closeModal();
-
-NOVA.render(
-NOVA.state.screen
-)
+modules.db.deletePostCloud(deletingId).then(ok=>{
+  if(ok){ NOVA.closeModal(); NOVA.render(NOVA.state.screen); NOVA.toast("Post deleted for everyone ✓"); }
+});
 
 }
 
@@ -5425,11 +5268,10 @@ m.voiceLiked.includes(me)
 ?m.voiceLiked=m.voiceLiked.filter(x=>x!==me)
 :m.voiceLiked.push(me);
 
+modules.db.saveChatCloud(modules.db.chatKey(modules.db.me().id,NOVA.state.activeChat));
 modules.db.save();
 
-modules.messages.chat(
-NOVA.state.activeChat
-);
+modules.messages.chat(NOVA.state.activeChat);
 
 return
 }
