@@ -1158,13 +1158,13 @@ send:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2
 const modules={};
 
 modules.db={
-users:null,
-posts:null,
-stories:null,
-messages:null,
-notifications:null,
-settings:null,
-chats:null,
+users:[],
+posts:[],
+stories:[],
+messages:[],
+notifications:[],
+settings:{notifications:true,online:true,autoplay:true,theme:"dark"},
+chats:{
 
 init(){
 
