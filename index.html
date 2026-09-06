@@ -2681,6 +2681,17 @@ NOVA.modal("Verified badges",`
 <div class="smallText" style="margin-bottom:12px">
 Give or remove the official blue badge from NOVA users.
 </div>
+
+<div class="card" style="margin:0 0 12px">
+<div class="option" data-action="ownerDeleteAllChats">
+<div class="icon">🗑</div>
+<div class="optionMain">
+<b>Delete all chats</b>
+<span>Clear every NOVA conversation for everyone</span>
+</div>
+›
+</div>
+</div>
 <div class="card" style="margin:0">
 ${d.users.filter(u=>u.id!==window.NOVA_OWNER_UID).map(u=>`
 <div class="people">
@@ -2705,6 +2716,40 @@ let next=!u.verified;
 if(modules.db.setVerified(id,next)){
 this.render();
 NOVA.toast(next?"Verified badge added ✓":"Verified badge removed");
+}
+},
+
+async deleteAllChats(){
+if(!modules.db.isOwner())return NOVA.toast("Owner only");
+if(!confirm("Delete ALL chats for ALL users? This cannot be undone."))return;
+
+try{
+const snap=await fdb.collection("chats").get();
+if(!snap.size){
+NOVA.toast("There are no chats to delete");
+return;
+}
+
+let batch=fdb.batch();
+let count=0;
+for(const doc of snap.docs){
+batch.delete(doc.ref);
+count++;
+if(count===450){
+await batch.commit();
+ batch=fdb.batch();
+ count=0;
+}
+}
+if(count)await batch.commit();
+
+modules.db.chats={};
+NOVA.state.activeChat=null;
+NOVA.render("messages");
+NOVA.toast("All chats deleted ✓");
+}catch(e){
+console.error(e);
+NOVA.toast("Could not delete all chats: "+(e?.message||"permission error"));
 }
 }
 };
@@ -4977,6 +5022,9 @@ auth.switch();
 
 if(x==="ownerVerified")
 modules.owner.open();
+
+if(x==="ownerDeleteAllChats")
+modules.owner.deleteAllChats();
 
 if(x==="reset"){
 
