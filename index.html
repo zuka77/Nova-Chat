@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>NOVA Social</title>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -11,21 +12,28 @@
 --text:#fff;--muted:#8d8d9b;--line:rgba(255,255,255,.08);
 --p:#8b5cf6;--pink:#ec4899;--red:#ff416c;--green:#35d07f
 }
-html,body{background:var(--bg);color:var(--text);min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+html,body{
+background:var(--bg);color:var(--text);min-height:100%;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+-webkit-tap-highlight-color:transparent
+}
 body{padding-bottom:78px;overflow-x:hidden}
+body.chat-open{padding-bottom:0;overflow:hidden}
 button,input,textarea{font:inherit}
 button{border:0;background:none;color:inherit;cursor:pointer}
 input,textarea{
-width:100%;background:var(--card2);color:var(--text);border:1px solid var(--line);
-border-radius:15px;padding:13px;outline:none
+width:100%;background:var(--card2);color:var(--text);
+border:1px solid var(--line);border-radius:15px;padding:13px;outline:none
 }
 input:focus,textarea:focus{border-color:#8b5cf666}
 .app{max-width:680px;margin:auto}
 .top{
-height:64px;position:sticky;top:0;z-index:30;background:rgba(7,7,11,.88);
-backdrop-filter:blur(20px);border-bottom:1px solid var(--line);
+height:64px;position:sticky;top:0;z-index:30;
+background:rgba(7,7,11,.88);backdrop-filter:blur(20px);
+border-bottom:1px solid var(--line);
 display:flex;align-items:center;justify-content:space-between;padding:0 15px
 }
+body.chat-open .top{display:none}
 .logo{
 font-size:27px;font-weight:950;letter-spacing:-1px;
 background:linear-gradient(90deg,var(--p),var(--pink));
@@ -34,32 +42,46 @@ background:linear-gradient(90deg,var(--p),var(--pink));
 .topBtns{display:flex;gap:7px}
 .circle{
 width:40px;height:40px;border-radius:50%;background:var(--card2);
-display:grid;place-items:center
+display:grid;place-items:center;flex:none
 }
 .svg{width:20px;height:20px;display:block}
 .circle .svg{width:19px;height:19px}
 .screen{display:none;padding:13px}
 .screen.active{display:block;animation:screenIn .22s ease}
-@keyframes screenIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@keyframes screenIn{
+from{opacity:0;transform:translateY(7px)}
+to{opacity:1;transform:none}
+}
 .title{font-size:27px;font-weight:900;margin:10px 3px 16px}
 .card{
-background:var(--card);border:1px solid var(--line);border-radius:21px;
-margin-bottom:13px;overflow:hidden
+background:var(--card);border:1px solid var(--line);
+border-radius:21px;margin-bottom:13px;overflow:hidden
 }
 .row{display:flex;align-items:center;gap:10px}
 .avatar{
-width:43px;height:43px;border-radius:50%;overflow:hidden;display:grid;
-place-items:center;flex:none;background:linear-gradient(135deg,var(--p),var(--pink));font-weight:900
+width:43px;height:43px;border-radius:50%;overflow:hidden;
+display:grid;place-items:center;flex:none;
+background:linear-gradient(135deg,var(--p),var(--pink));font-weight:900
 }
 .avatar img{width:100%;height:100%;object-fit:cover}
 .avatar.sm{width:36px;height:36px}
 .avatar.big{width:92px;height:92px}
-.avatar.online{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--green)}
+.avatar.online{
+box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--green)
+}
 .createBar{display:flex;align-items:center;gap:9px;padding:12px}
-.fakeInput{flex:1;background:var(--card2);border-radius:18px;padding:12px;color:var(--muted);text-align:left}
-.stories{display:flex;gap:12px;overflow:auto;padding:4px 2px 16px;scrollbar-width:none}
+.fakeInput{
+flex:1;background:var(--card2);border-radius:18px;padding:12px;
+color:var(--muted);text-align:left
+}
+.stories{
+display:flex;gap:12px;overflow:auto;padding:4px 2px 16px;
+scrollbar-width:none
+}
 .stories::-webkit-scrollbar{display:none}
-.story{min-width:68px;width:68px;text-align:center;color:var(--muted);font-size:10px}
+.story{
+min-width:68px;width:68px;text-align:center;color:var(--muted);font-size:10px
+}
 .storyRing{
 width:64px;height:64px;border-radius:50%;padding:2px;margin:auto auto 5px;
 background:linear-gradient(135deg,#8b5cf6,#ec4899,#f59e0b)
@@ -68,32 +90,62 @@ background:linear-gradient(135deg,#8b5cf6,#ec4899,#f59e0b)
 width:100%;height:100%;border-radius:50%;background:var(--card2);
 overflow:hidden;display:grid;place-items:center;font-size:25px
 }
-.storyInner img,.storyInner video{width:100%;height:100%;object-fit:cover}
-.postHead{display:flex;align-items:center;gap:10px;padding:13px}
+.storyInner img,.storyInner video{
+width:100%;height:100%;object-fit:cover
+}
+.postHead{
+display:flex;align-items:center;gap:10px;padding:13px
+}
 .userInfo{flex:1;min-width:0}
 .name{font-weight:800;font-size:14px}
 .handle,.time{font-size:11px;color:var(--muted)}
-.postText{padding:0 14px 13px;line-height:1.5;font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere}
-.media{width:100%;max-height:620px;object-fit:cover;background:#000;display:block}
-.actions{display:flex;gap:3px;padding:8px;border-top:1px solid var(--line);overflow:auto}
-.action{min-width:42px;padding:9px;border-radius:12px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:4px}
-.action.active{color:#ff3d72;background:rgba(255,61,114,.1)}
+.postText{
+padding:0 14px 13px;line-height:1.5;font-size:15px;
+white-space:pre-wrap;overflow-wrap:anywhere
+}
+.media{
+width:100%;max-height:620px;object-fit:cover;
+background:#000;display:block
+}
+.actions{
+display:flex;gap:3px;padding:8px;
+border-top:1px solid var(--line);overflow:auto
+}
+.action{
+min-width:42px;padding:9px;border-radius:12px;
+color:var(--muted);display:flex;align-items:center;
+justify-content:center;gap:4px
+}
+.action svg{width:18px;height:18px}
+.action.active{
+color:#ff3d72;background:rgba(255,61,114,.1)
+}
 .meta{font-size:11px;color:var(--muted);padding:0 14px 12px}
 .commentPreview{padding:0 14px 14px;font-size:13px}
 .btn{
-background:linear-gradient(135deg,var(--p),var(--pink));color:#fff;border-radius:14px;
-padding:11px 16px;font-weight:800
+background:linear-gradient(135deg,var(--p),var(--pink));
+color:#fff;border-radius:14px;padding:11px 16px;font-weight:800
 }
 .btn.secondary{background:var(--card2)}
 .btn.small{padding:8px 12px;font-size:12px}
 .full{width:100%}
 .search{margin-bottom:13px;position:relative}
 .search input{padding-left:42px}
-.searchIcon{position:absolute;left:14px;top:12px;color:var(--muted)}
-.people{display:flex;align-items:center;gap:10px;padding:13px;border-bottom:1px solid var(--line)}
+.searchIcon{
+position:absolute;left:14px;top:12px;color:var(--muted)
+}
+.people{
+display:flex;align-items:center;gap:10px;padding:13px;
+border-bottom:1px solid var(--line)
+}
 .people:last-child{border-bottom:0}
-.tabs{display:flex;background:var(--card2);padding:4px;border-radius:14px;margin-bottom:13px}
-.tab{flex:1;padding:10px;color:var(--muted);border-radius:11px}
+.tabs{
+display:flex;background:var(--card2);padding:4px;
+border-radius:14px;margin-bottom:13px
+}
+.tab{
+flex:1;padding:10px;color:var(--muted);border-radius:11px
+}
 .tab.active{background:var(--card);color:#fff;font-weight:800}
 .profile{text-align:center;padding:18px}
 .profile .avatar{margin:auto}
@@ -103,247 +155,644 @@ padding:11px 16px;font-weight:800
 .stat b{display:block;font-size:19px}
 .stat span{font-size:11px;color:var(--muted)}
 .option{
-display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid var(--line)
+display:flex;align-items:center;gap:12px;padding:14px;
+border-bottom:1px solid var(--line)
 }
 .option:last-child{border-bottom:0}
 .icon{width:28px;text-align:center}
+.icon svg{width:20px;height:20px}
 .optionMain{flex:1}
 .optionMain b{display:block;font-size:14px}
 .optionMain span{display:block;color:var(--muted);font-size:11px}
 .bottom{
 position:fixed;bottom:0;left:0;right:0;height:75px;z-index:50;
-background:rgba(12,12,17,.94);backdrop-filter:blur(20px);border-top:1px solid var(--line)
+background:rgba(12,12,17,.94);backdrop-filter:blur(20px);
+border-top:1px solid var(--line)
 }
-.bottomIn{max-width:680px;margin:auto;height:100%;display:flex;justify-content:space-around}
+body.chat-open .bottom,
+body.chat-open .fab{display:none}
+.bottomIn{
+max-width:680px;margin:auto;height:100%;
+display:flex;justify-content:space-around
+}
 .nav{
-width:58px;height:58px;margin-top:7px;border-radius:17px;color:var(--muted);
-display:flex;flex-direction:column;align-items:center;justify-content:center
+width:58px;height:58px;margin-top:7px;border-radius:17px;
+color:var(--muted);display:flex;flex-direction:column;
+align-items:center;justify-content:center
 }
 .nav span{font-size:9px}
 .nav.active{background:var(--card2);color:#fff}
 .fab{
-position:fixed;right:20px;bottom:90px;z-index:40;width:56px;height:56px;border-radius:50%;
-background:linear-gradient(135deg,var(--p),var(--pink));color:#fff;font-size:28px;
-box-shadow:0 10px 35px #8b5cf655
+position:fixed;right:20px;bottom:90px;z-index:40;
+width:56px;height:56px;border-radius:50%;
+background:linear-gradient(135deg,var(--p),var(--pink));
+color:#fff;font-size:28px;box-shadow:0 10px 35px #8b5cf655
 }
 .modalBg{
-position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);
-display:none;align-items:flex-end
+position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.72);
+backdrop-filter:blur(8px);display:none;align-items:flex-end
 }
 .modalBg.open{display:flex}
 .modal{
-width:min(680px,100%);max-height:92vh;overflow:auto;background:var(--card);
-border-radius:27px 27px 0 0;padding:17px;animation:modalUp .22s ease
+width:min(680px,100%);max-height:92vh;overflow:auto;
+background:var(--card);border-radius:27px 27px 0 0;
+padding:17px;animation:modalUp .22s ease
 }
-@keyframes modalUp{from{transform:translateY(100%)}to{transform:none}}
-.modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+@keyframes modalUp{
+from{transform:translateY(100%)}to{transform:none}
+}
+.modalHead{
+display:flex;justify-content:space-between;align-items:center;
+margin-bottom:15px
+}
 .modalTitle{font-size:19px;font-weight:900}
-.close{width:38px;height:38px;border-radius:50%;background:var(--card2);font-size:22px}
+.close{
+width:38px;height:38px;border-radius:50%;
+background:var(--card2);font-size:22px
+}
 .form{display:grid;gap:11px}
-.preview{width:100%;max-height:380px;object-fit:contain;border-radius:17px;display:none;background:#000}
+.preview{
+width:100%;max-height:380px;object-fit:contain;border-radius:17px;
+display:none;background:#000
+}
 .reactions{display:flex;flex-wrap:wrap;gap:7px}
 .react{
-width:48px;height:48px;border-radius:14px;background:var(--card2);
-display:grid;place-items:center
+width:48px;height:48px;border-radius:14px;
+background:var(--card2);display:grid;place-items:center
 }
 .react svg{width:24px;height:24px}
+.react.active{
+background:rgba(139,92,246,.22);
+box-shadow:0 0 0 1px #8b5cf666
+}
 .comments{max-height:45vh;overflow:auto}
-.comment{display:flex;gap:9px;padding:11px 0;border-bottom:1px solid var(--line)}
+.comment{
+display:flex;gap:9px;padding:11px 0;border-bottom:1px solid var(--line)
+}
 .commentBody{flex:1;font-size:13px}
 .commentTime{font-size:10px;color:var(--muted)}
-.chatListTitle{display:flex;justify-content:space-between;align-items:center}
+
+.chatListTitle{
+display:flex;justify-content:space-between;align-items:center
+}
 .chatRow{
-width:100%;display:flex;gap:10px;padding:14px;border-bottom:1px solid var(--line);
-text-align:left;transition:.18s
+width:100%;display:flex;gap:10px;padding:14px;
+border-bottom:1px solid var(--line);text-align:left;transition:.18s
 }
 .chatRow:active{background:var(--card2)}
 .chatMain{flex:1;min-width:0}
 .chatMain b{font-size:14px}
-.chatMain div{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chatMain div{
+font-size:12px;color:var(--muted);white-space:nowrap;
+overflow:hidden;text-overflow:ellipsis
+}
+
+/* =========================================================
+   FULLSCREEN MOBILE CHAT
+   ========================================================= */
+
+body.chat-open #messages{
+display:block;
+padding:0;
+margin:0;
+width:100%;
+height:100dvh;
+min-height:100dvh;
+animation:none;
+}
+
 .chat{
-height:calc(100vh - 142px);display:flex;flex-direction:column;min-height:430px
+position:fixed;
+inset:0;
+z-index:80;
+width:100%;
+height:100dvh;
+min-height:100dvh;
+display:flex;
+flex-direction:column;
+background:var(--bg);
+overflow:hidden;
+padding-bottom:env(safe-area-inset-bottom);
 }
+
 .chatHead{
-padding:4px 0 10px;border-bottom:1px solid var(--line)
+height:62px;
+min-height:62px;
+padding:7px 9px;
+border-bottom:1px solid var(--line);
+background:rgba(7,7,11,.94);
+backdrop-filter:blur(22px);
+display:flex;
+align-items:center;
+gap:4px;
+z-index:5;
 }
+
+.chatHead .circle{
+width:42px;
+height:42px;
+background:transparent
+}
+
+.chatHead .row[data-chat-profile]{
+height:48px;
+min-width:0;
+padding:2px 5px;
+border-radius:14px
+}
+
+.chatHead .row[data-chat-profile]:active{
+background:var(--card2)
+}
+
+.chatHead .row[data-chat-profile] .avatar{
+width:37px;
+height:37px
+}
+
+.chatHead .row[data-chat-profile]>div:last-child{
+min-width:0;
+overflow:hidden
+}
+
+.chatHead .row[data-chat-profile] b{
+display:block;
+font-size:14px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis
+}
+
 .chatMessages{
-flex:1;overflow:auto;padding:12px 4px;scroll-behavior:smooth;
-background-size:cover;background-position:center;border-radius:16px
+flex:1;
+min-height:0;
+overflow-y:auto;
+overflow-x:hidden;
+-webkit-overflow-scrolling:touch;
+overscroll-behavior:contain;
+padding:14px 13px 12px;
+scroll-behavior:smooth;
+background-size:cover;
+background-position:center;
+border-radius:0;
 }
-.chatMessages.theme-dark{background:linear-gradient(135deg,#090910,#141421)}
-.chatMessages.theme-purple{background:linear-gradient(135deg,#161023,#251338)}
-.chatMessages.theme-blue{background:linear-gradient(135deg,#07121c,#102637)}
-.chatMessages.theme-light{background:linear-gradient(135deg,#edf1f7,#dce2ec)}
-.chatMessages.hasBg{background-color:#08080c}
-.bubbleWrap{position:relative;margin:3px 0;display:flex;flex-direction:column}
+
+.chatMessages.theme-dark{
+background:linear-gradient(135deg,#090910,#141421)
+}
+.chatMessages.theme-purple{
+background:linear-gradient(135deg,#161023,#251338)
+}
+.chatMessages.theme-blue{
+background:linear-gradient(135deg,#07121c,#102637)
+}
+.chatMessages.theme-light{
+background:linear-gradient(135deg,#edf1f7,#dce2ec)
+}
+.chatMessages.hasBg{
+background-color:#08080c
+}
+
+/* message row */
+.bubbleWrap{
+position:relative;
+margin:3px 0;
+display:flex;
+flex-direction:column;
+transition:transform .18s ease;
+width:100%;
+touch-action:pan-y
+}
 .bubbleWrap.me{align-items:flex-end}
 .bubbleWrap.them{align-items:flex-start}
+
+/* TEXT BUBBLES ONLY */
 .bubble{
-position:relative;max-width:min(78%,330px);padding:8px 11px;border-radius:16px;
-font-size:14px;line-height:1.35;word-break:break-word;
-transition:transform .18s,opacity .18s
+position:relative;
+max-width:min(78%,330px);
+padding:8px 11px;
+border-radius:18px;
+font-size:14px;
+line-height:1.4;
+word-break:break-word;
+transition:transform .18s,opacity .18s;
 }
-.bubble.me{background:linear-gradient(135deg,var(--p),var(--pink));border-bottom-right-radius:5px}
-.bubble.them{background:var(--card2);border-bottom-left-radius:5px}
-.bubble.deleted{font-style:italic;opacity:.55}
-.bubbleMedia{display:block;max-width:100%;max-height:280px;border-radius:12px;object-fit:cover}
-.msgTime{font-size:8px;opacity:.55;text-align:right;margin-top:3px}
+
+.bubble.me{
+background:linear-gradient(135deg,var(--p),var(--pink));
+border-bottom-right-radius:5px
+}
+.bubble.them{
+background:var(--card2);
+border-bottom-left-radius:5px
+}
+.bubble.deleted{
+font-style:italic;
+opacity:.55
+}
+
+/* IMPORTANT:
+   PHOTO / VIDEO HAVE NO MESSAGE BUBBLE */
+.mediaMessage{
+position:relative;
+display:flex;
+flex-direction:column;
+align-items:flex-start;
+max-width:82%;
+padding:0;
+margin:0;
+background:transparent;
+border:0;
+box-shadow:none
+}
+.bubbleWrap.me .mediaMessage{
+align-items:flex-end
+}
+
+.chatMedia{
+display:block;
+width:auto;
+max-width:min(300px,78vw);
+max-height:min(430px,58vh);
+object-fit:cover;
+background:#000;
+border-radius:17px;
+padding:0;
+margin:0;
+box-shadow:0 2px 18px rgba(0,0,0,.18)
+}
+
+.chatMediaVideo{
+display:block;
+width:auto;
+max-width:min(300px,78vw);
+max-height:min(430px,58vh);
+object-fit:contain;
+background:#000;
+border-radius:17px;
+padding:0;
+margin:0
+}
+
+/* media timestamp stays outside media */
+.mediaTime{
+font-size:8px;
+color:#ffffff99;
+margin-top:4px;
+padding:0 4px;
+line-height:1
+}
+.bubbleWrap.them .mediaTime{
+color:#ffffff77
+}
+
+.msgTime{
+font-size:8px;
+opacity:.55;
+text-align:right;
+margin-top:3px
+}
+
+/* reaction no longer covers photo/video */
 .msgReaction{
-position:absolute;bottom:-8px;right:4px;background:var(--card);
-border:1px solid var(--line);border-radius:10px;padding:2px 5px;font-size:11px
+position:relative;
+bottom:auto;
+right:auto;
+align-self:flex-end;
+margin-top:3px;
+background:var(--card);
+border:1px solid var(--line);
+border-radius:10px;
+padding:3px 5px;
+display:flex;
+align-items:center;
+gap:2px;
+z-index:2;
+box-shadow:0 3px 12px #0005
 }
+.bubbleWrap.them .msgReaction{
+align-self:flex-start
+}
+.msgReaction svg{width:13px;height:13px}
+
 .replyQuote{
-font-size:10px;padding:5px 7px;border-left:2px solid #ffffff77;
-margin-bottom:5px;opacity:.72;background:#00000018;border-radius:5px
+font-size:10px;
+padding:5px 7px;
+border-left:2px solid #ffffff77;
+margin-bottom:5px;
+opacity:.72;
+background:#00000018;
+border-radius:5px;
+max-width:100%
 }
+
+/* voice stays compact */
 .voice{
-display:flex;align-items:center;gap:8px;min-width:190px
+display:flex;
+align-items:center;
+gap:8px;
+min-width:190px
 }
 .voicePlay{
-width:36px;height:36px;border-radius:50%;background:#ffffff1d;display:grid;place-items:center
+width:36px;height:36px;border-radius:50%;
+background:#ffffff1d;display:grid;place-items:center
 }
-.wave{display:flex;gap:2px;align-items:center;height:26px;flex:1}
-.wave i{display:block;width:3px;border-radius:3px;background:#fff;opacity:.7}
-.voiceLike{width:30px;height:30px;display:grid;place-items:center}
+.voicePlay svg{width:16px;height:16px}
+.wave{
+display:flex;gap:2px;align-items:center;
+height:26px;flex:1
+}
+.wave i{
+display:block;width:3px;border-radius:3px;
+background:#fff;opacity:.7
+}
+.voiceLike{
+width:30px;height:30px;display:grid;place-items:center
+}
+.voiceLike svg{width:16px;height:16px}
 .voiceLike.active{color:#ff4778}
 .voiceTime{font-size:9px;opacity:.6}
-.chatInput{display:flex;gap:6px;padding-top:7px;align-items:center}
-.chatInput input{flex:1;min-width:0}
-.iconBtn{
-width:42px;height:42px;border-radius:14px;background:var(--card2);
-display:grid;place-items:center;flex:none
+
+.chatInputArea{
+background:rgba(7,7,11,.96);
+backdrop-filter:blur(20px);
+border-top:1px solid var(--line);
+padding:7px 9px calc(8px + env(safe-area-inset-bottom));
+z-index:6;
+flex:none
 }
+
+.chatInput{
+display:flex;
+gap:6px;
+align-items:center;
+width:100%;
+padding:0
+}
+
+.chatInput input{
+flex:1;
+min-width:0;
+height:43px;
+padding:10px 13px;
+border-radius:21px;
+background:var(--card2);
+border:1px solid var(--line)
+}
+
+.iconBtn{
+width:42px;
+height:42px;
+border-radius:50%;
+background:var(--card2);
+display:grid;
+place-items:center;
+flex:none
+}
+.iconBtn:active{transform:scale(.94)}
+.iconBtn svg{width:19px;height:19px}
+
 .recording{
-background:#24131c!important;color:#ff5c83!important;
+background:#24131c!important;
+color:#ff5c83!important;
 animation:pulse 1s infinite
 }
-@keyframes pulse{50%{box-shadow:0 0 0 7px #ff416c18}}
-.replyBar{
-display:none;background:var(--card2);border-radius:13px;padding:8px 10px;
-margin-top:7px;align-items:center;gap:8px
+@keyframes pulse{
+50%{box-shadow:0 0 0 7px #ff416c18}
 }
-.replyBar.open{display:flex}
-.replyBarText{flex:1;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.replyBar{
+display:none;
+background:var(--card2);
+border-radius:13px;
+padding:8px 10px;
+margin:0 0 7px;
+align-items:center;
+gap:8px
+}
+.replyBar.open{
+display:flex;
+animation:replyIn .18s ease
+}
+@keyframes replyIn{
+from{opacity:0;transform:translateY(6px)}
+to{opacity:1;transform:none}
+}
+.replyBarText{
+flex:1;
+font-size:11px;
+color:var(--muted);
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis
+}
 .replyClose{font-size:18px;color:var(--muted)}
+
+.attachMenu{
+display:none;
+position:absolute;
+bottom:52px;
+left:0;
+background:var(--card);
+border:1px solid var(--line);
+border-radius:18px;
+padding:7px;
+z-index:20;
+box-shadow:0 15px 40px #0008
+}
+.attachMenu.open{display:grid}
+.attachItem{
+padding:11px 13px;
+border-radius:12px;
+display:flex;
+gap:8px;
+align-items:center;
+white-space:nowrap
+}
+.attachItem:active{background:var(--card2)}
+.chatInputWrap{position:relative;flex:none}
+
 .chatProfileHeader{
 padding:20px;text-align:center;background:var(--card);
 border-radius:20px;margin-bottom:12px
 }
 .chatProfileHeader .avatar{margin:auto}
-.profileGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.profileGrid{
+display:grid;grid-template-columns:repeat(3,1fr);gap:2px
+}
 .profileGrid img,.profileGrid video{
 width:100%;aspect-ratio:1;object-fit:cover;background:#000
 }
-.empty{text-align:center;color:var(--muted);padding:50px 20px}
+.empty{
+text-align:center;color:var(--muted);padding:50px 20px
+}
 .empty b{display:block;color:#fff;margin-bottom:5px}
 .toast{
-position:fixed;z-index:300;bottom:95px;left:50%;transform:translate(-50%,20px);
-opacity:0;background:#25252e;color:#fff;padding:12px 17px;border-radius:15px;
-transition:.25s;pointer-events:none;max-width:90%;text-align:center
+position:fixed;z-index:300;bottom:95px;left:50%;
+transform:translate(-50%,20px);opacity:0;background:#25252e;color:#fff;
+padding:12px 17px;border-radius:15px;transition:.25s;
+pointer-events:none;max-width:90%;text-align:center
 }
-.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.show{
+opacity:1;transform:translate(-50%,0)
+}
 .viewer{
-position:fixed;inset:0;z-index:200;background:#000;display:none;color:#fff
+position:fixed;inset:0;z-index:200;background:#000;
+display:none;color:#fff
 }
 .viewer.open{display:block}
-.viewerIn{height:100%;max-width:520px;margin:auto;position:relative;overflow:hidden}
-.viewerMedia{width:100%;height:100%;object-fit:contain;background:#000}
-.viewerText{
-width:100%;height:100%;display:grid;place-items:center;text-align:center;padding:40px;
-font-size:34px;font-weight:900;background:linear-gradient(135deg,#8b5cf6,#ec4899,#f59e0b)
+.viewerIn{
+height:100%;max-width:520px;margin:auto;
+position:relative;overflow:hidden
 }
-.viewerTop{position:absolute;top:13px;left:12px;right:12px;z-index:8}
-.progress{height:3px;background:#ffffff55;border-radius:10px}
-.viewerClose{position:absolute;right:12px;top:18px;z-index:10;font-size:30px}
-.viewerNav{position:absolute;inset:0;display:flex;z-index:5}
+.viewerMedia{
+width:100%;height:100%;object-fit:contain;background:#000
+}
+.viewerText{
+width:100%;height:100%;display:grid;place-items:center;
+text-align:center;padding:40px;font-size:34px;font-weight:900;
+background:linear-gradient(135deg,#8b5cf6,#ec4899,#f59e0b)
+}
+.viewerTop{
+position:absolute;top:13px;left:12px;right:12px;z-index:8
+}
+.progress{
+height:3px;background:#ffffff55;border-radius:10px
+}
+.viewerClose{
+position:absolute;right:12px;top:18px;
+z-index:20;font-size:30px
+}
+.viewerNav{
+position:absolute;inset:0;display:flex;z-index:5
+}
 .viewerSide{flex:1}
 .viewerBottom{
-position:absolute;bottom:17px;left:12px;right:12px;z-index:10;display:flex;gap:6px
+position:absolute;bottom:17px;left:12px;right:12px;
+z-index:10;display:flex;gap:6px
 }
-.viewerBottom input{background:#111c;border-color:#ffffff22;color:#fff}
+.viewerBottom input{
+background:#111c;border-color:#ffffff22;color:#fff
+}
 .viewerBtn{
-width:45px;height:45px;border-radius:50%;background:#ffffff22;color:#fff;
-display:grid;place-items:center
+width:45px;height:45px;border-radius:50%;
+background:#ffffff22;color:#fff;display:grid;place-items:center
 }
+.viewerBtn svg{width:19px;height:19px}
 .storyReactRow{
-display:flex;gap:5px;overflow:auto;position:absolute;bottom:72px;left:12px;right:12px;z-index:10
+display:flex;gap:5px;overflow:auto;
+position:absolute;bottom:72px;left:12px;right:12px;z-index:10
 }
 .storyReactRow button{
-min-width:42px;height:42px;background:#ffffff1c;border-radius:13px;
-display:grid;place-items:center
+min-width:42px;height:42px;background:#ffffff1c;
+border-radius:13px;display:grid;place-items:center
+}
+.storyReactRow button.active{
+background:#ffffff35;
+box-shadow:0 0 0 1px #ffffff55
 }
 .storyReactRow svg{width:21px;height:21px}
 .storyReplies{
-position:absolute;left:12px;right:12px;bottom:125px;max-height:28vh;
-overflow:auto;z-index:9
+position:absolute;left:12px;right:12px;bottom:125px;
+max-height:28vh;overflow:auto;z-index:9
 }
-.storyReply{background:#111d;padding:9px 11px;border-radius:14px;margin:5px 0;font-size:12px}
+.storyReply{
+background:#111d;padding:9px 11px;
+border-radius:14px;margin:5px 0;font-size:12px
+}
 .longPressShade{
-position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.48);
-backdrop-filter:blur(13px);display:none;align-items:flex-end
+position:fixed;inset:0;z-index:500;
+background:rgba(0,0,0,.48);
+backdrop-filter:blur(13px);
+display:none;align-items:flex-end
 }
 .longPressShade.open{display:flex}
 .longMenu{
-width:min(680px,100%);background:rgba(25,25,34,.97);border-radius:28px 28px 0 0;
+width:min(680px,100%);
+background:rgba(25,25,34,.97);
+border-radius:28px 28px 0 0;
 padding:12px;animation:modalUp .18s ease
 }
 .longPreview{
-background:var(--card);border-radius:17px;padding:5px;margin-bottom:8px;
+background:var(--card);border-radius:17px;
+padding:5px;margin-bottom:8px;
 max-height:180px;overflow:hidden
 }
 .longActions{display:grid;gap:4px}
 .longAction{
-padding:15px;border-radius:14px;text-align:left;background:transparent;
-display:flex;gap:12px;align-items:center
+padding:15px;border-radius:14px;text-align:left;
+background:transparent;display:flex;gap:12px;align-items:center
 }
+.longAction svg{width:20px;height:20px}
 .longAction:active{background:var(--card2)}
 .reactRow{
-display:flex;gap:4px;background:var(--card);border:1px solid var(--line);
-border-radius:20px;padding:7px;margin-bottom:8px;overflow:auto
+display:flex;gap:4px;background:var(--card);
+border:1px solid var(--line);border-radius:20px;
+padding:7px;margin-bottom:8px;overflow:auto
 }
 .reactChoice{
-min-width:42px;height:42px;border-radius:14px;background:var(--card2);
-display:grid;place-items:center
+min-width:42px;height:42px;border-radius:14px;
+background:var(--card2);display:grid;place-items:center
 }
+.reactChoice svg{width:20px;height:20px}
 .auth{
-position:fixed;inset:0;z-index:1000;background:radial-gradient(circle at top right,#321657,#08080d 45%);
+position:fixed;inset:0;z-index:1000;
+background:radial-gradient(circle at top right,#321657,#08080d 45%);
 display:none;overflow:auto
 }
 .authWrap{
-min-height:100%;width:min(440px,100%);margin:auto;padding:25px 20px;
-display:flex;flex-direction:column;justify-content:center
+min-height:100%;width:min(440px,100%);margin:auto;
+padding:25px 20px;display:flex;flex-direction:column;
+justify-content:center
 }
 .authLogo{
-text-align:center;font-size:52px;font-weight:950;letter-spacing:-4px;
-background:linear-gradient(90deg,var(--p),var(--pink));-webkit-background-clip:text;color:transparent
+text-align:center;font-size:52px;font-weight:950;
+letter-spacing:-4px;
+background:linear-gradient(90deg,var(--p),var(--pink));
+-webkit-background-clip:text;color:transparent
 }
 .authSub{text-align:center;color:#9999aa;margin:5px 0 25px}
-.authCard{background:#12121bdd;border:1px solid #ffffff12;border-radius:28px;padding:18px}
-.authTabs{display:flex;background:#0d0d14;padding:4px;border-radius:15px;margin-bottom:18px}
-.authTab{flex:1;padding:11px;border-radius:11px;color:#999}
-.authTab.active{background:#20202b;color:#fff;font-weight:800}
+.authCard{
+background:#12121bdd;border:1px solid #ffffff12;
+border-radius:28px;padding:18px
+}
+.authTabs{
+display:flex;background:#0d0d14;padding:4px;
+border-radius:15px;margin-bottom:18px
+}
+.authTab{
+flex:1;padding:11px;border-radius:11px;color:#999
+}
+.authTab.active{
+background:#20202b;color:#fff;font-weight:800
+}
 .authForm{display:grid;gap:11px}
 .authForm h2{font-size:22px}
 .authHelp{font-size:11px;color:#888;line-height:1.5}
 .authError{font-size:12px;color:#ff718f;min-height:17px}
-.onlineDot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block}
+.onlineDot{
+width:8px;height:8px;border-radius:50%;
+background:var(--green);display:inline-block
+}
 .hidden{display:none!important}
 .smallText{font-size:11px;color:var(--muted)}
-.attachMenu{
-display:none;position:absolute;bottom:54px;left:0;background:var(--card);
-border:1px solid var(--line);border-radius:18px;padding:7px;z-index:20;
-box-shadow:0 15px 40px #0008
+@media(min-width:681px){
+body.chat-open #messages{
+max-width:680px;
+margin:auto
 }
-.attachMenu.open{display:grid}
-.attachItem{padding:11px 13px;border-radius:12px;display:flex;gap:8px;align-items:center;white-space:nowrap}
-.attachItem:active{background:var(--card2)}
-.chatInputWrap{position:relative;flex:1}
+.chat{
+left:50%;
+right:auto;
+transform:translateX(-50%);
+width:min(680px,100vw)
+}
+}
 </style>
 </head>
 
 <body>
 
-<!-- AUTH -->
 <div id="auth" class="auth">
 <div class="authWrap">
 <div class="authLogo">NOVA</div>
@@ -362,15 +811,25 @@ box-shadow:0 15px 40px #0008
 
 <header class="top">
 <button class="logo" data-go="home">NOVA</button>
+
 <div class="topBtns">
 <button class="circle" data-action="search" aria-label="Search">
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>
+</svg>
 </button>
+
 <button class="circle" data-action="notifications" aria-label="Notifications">
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+<path d="M10 21h4"/>
+</svg>
 </button>
+
 <button class="circle" data-go="messages" aria-label="Messages">
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.4-3.4A7.4 7.4 0 0 1 4.5 12 7.5 7.5 0 0 1 12 4.5a7.5 7.5 0 0 1 8 7Z"/></svg>
+<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.4-3.4A7.4 7.4 0 0 1 4.5 12 7.5 7.5 0 0 1 12 4.5a7.5 7.5 0 0 1 8 7Z"/>
+</svg>
 </button>
 </div>
 </header>
@@ -389,26 +848,42 @@ box-shadow:0 15px 40px #0008
 
 <nav class="bottom">
 <div class="bottomIn">
+
 <button class="nav active" data-go="home">
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg>
+<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>
+</svg>
 <span>Home</span>
 </button>
+
 <button class="nav" data-go="explore">
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>
+</svg>
 <span>Explore</span>
 </button>
+
 <button class="nav" data-go="create">
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M12 5v14M5 12h14"/>
+</svg>
 <span>Create</span>
 </button>
+
 <button class="nav" data-go="messages">
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.4-3.4A7.4 7.4 0 0 1 4.5 12 7.5 7.5 0 0 1 12 4.5a7.5 7.5 0 0 1 8 7Z"/></svg>
+<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.4-3.4A7.4 7.4 0 0 1 4.5 12 7.5 7.5 0 0 1 12 4.5a7.5 7.5 0 0 1 8 7Z"/>
+</svg>
 <span>Messages</span>
 </button>
+
 <button class="nav" data-go="profile">
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>
+</svg>
 <span>Profile</span>
 </button>
+
 </div>
 </nav>
 
@@ -446,15 +921,23 @@ activeChat:null,
 chatProfile:null,
 replyTo:null,
 chatTheme:{},
-pressTimer:null
+pressTimer:null,
+storyTimer:null,
+storyPausedByLongPress:false
 },
+
 uid(p="id"){
 return p+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,9)
 },
+
 esc(v){
-return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;")
-.replaceAll(">","&gt;").replaceAll('"',"&quot;")
+return String(v??"")
+.replaceAll("&","&amp;")
+.replaceAll("<","&lt;")
+.replaceAll(">","&gt;")
+.replaceAll('"',"&quot;")
 },
+
 time(t){
 let n=Date.now()-Number(t);
 if(n<60000)return"now";
@@ -463,36 +946,60 @@ if(n<86400000)return Math.floor(n/3600000)+"h";
 if(n<604800000)return Math.floor(n/86400000)+"d";
 return new Date(Number(t)).toLocaleDateString()
 },
+
 get(k,d){
-try{let x=localStorage.getItem("NOVA_"+k);return x?JSON.parse(x):d}catch(e){return d}
+try{
+let x=localStorage.getItem("NOVA_"+k);
+return x?JSON.parse(x):d
+}catch(e){return d}
 },
+
 set(k,v){
-try{localStorage.setItem("NOVA_"+k,JSON.stringify(v))}catch(e){}
+try{localStorage.setItem("NOVA_"+k,JSON.stringify(v))}
+catch(e){}
 },
+
 toast(t){
 let x=$("toast");
+if(!x)return;
 x.textContent=t;
 x.classList.add("show");
 clearTimeout(this.toastT);
 this.toastT=setTimeout(()=>x.classList.remove("show"),2200)
 },
+
 modal(t,h){
 $("modalTitle").textContent=t;
 $("modalBody").innerHTML=h;
 $("modalBg").classList.add("open")
 },
-closeModal(){$("modalBg").classList.remove("open")},
+
+closeModal(){
+$("modalBg").classList.remove("open")
+},
+
 go(s){
 this.state.screen=s;
+
+if(s!=="messages"||!this.state.activeChat){
+document.body.classList.remove("chat-open")
+}
+
 document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
 $(s).classList.add("active");
-document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.go===s));
+
+document.querySelectorAll(".nav").forEach(x=>
+x.classList.toggle("active",x.dataset.go===s)
+);
+
 this.render(s);
 window.scrollTo(0,0)
 },
+
 render(s){
 if(modules[s]?.render)modules[s].render()
 },
+
 async image(file){
 return new Promise(resolve=>{
 if(!file)return resolve("");
@@ -500,1028 +1007,3534 @@ let r=new FileReader;
 r.onload=()=>resolve(r.result);
 r.onerror=()=>resolve("");
 r.readAsDataURL(file)
-})
+} )
 },
+
 async hashText(v){
 if(window.crypto?.subtle){
-let b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v));
-return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")
+let b=await crypto.subtle.digest(
+"SHA-256",new TextEncoder().encode(v)
+);
+return [...new Uint8Array(b)]
+.map(x=>x.toString(16).padStart(2,"0")).join("")
 }
 let h=0;
-for(let i=0;i<v.length;i++)h=((h<<5)-h)+v.charCodeAt(i)|0;
+for(let i=0;i<v.length;i++)
+h=((h<<5)-h)+v.charCodeAt(i)|0;
 return String(h)
 }
 };
 
 const ICONS={
-heart:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 8.6c0 5.5-8.8 10.4-8.8 10.4S3.2 14.1 3.2 8.6A5.1 5.1 0 0 1 12 5a5.1 5.1 0 0 1 8.8 3.6Z"/></svg>`,
-laugh:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.3 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>`,
-wow:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9" r=".7"/><circle cx="15" cy="9" r=".7"/><circle cx="12" cy="14" r="2"/></svg>`,
-fire:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21c4 0 7-2.7 7-6.6 0-2.8-1.7-5.1-4.3-7.2.1 2.1-.7 3.3-1.7 4.1.2-3.8-1.5-6.5-4.2-8.8.2 4.1-3.8 6.1-3.8 10.4C5 18 8 21 12 21Z"/></svg>`,
-sad:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 16s1.3-2 4-2 4 2 4 2M9 9h.01M15 9h.01"/></svg>`,
-angry:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 9 2 1M16 9l-2 1M8 16c2-2 6-2 8 0"/></svg>`,
-like:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 10v10H4V10h3ZM7 20h10a2 2 0 0 0 2-2l1-6a2 2 0 0 0-2-2h-5l1-5a2 2 0 0 0-4 0l-2 5"/></svg>`,
-reply:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.4-3.4A7.4 7.4 0 0 1 4.5 12 7.5 7.5 0 0 1 12 4.5a7.5 7.5 0 0 1 8 7Z"/></svg>`,
-trash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>`,
-play:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 11 7-11 7V5Z"/></svg>`,
-pause:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>`,
-send:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 3-7.5 18-3.5-7-7-3.5L21 3Z"/><path d="m10 14 5-5"/></svg>`
+heart:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M20.8 8.6c0 5.5-8.8 10.4-8.8 10.4S3.2 14.1 3.2 8.6A5.1 5.1 0 0 1 12 5a5.1 5.1 0 0 1 8.8 3.6Z"/>
+</svg>`,
+
+laugh:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="12" cy="12" r="9"/>
+<path d="M8 14s1.3 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/>
+</svg>`,
+
+wow:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="12" cy="12" r="9"/>
+<circle cx="9" cy="9" r=".7"/>
+<circle cx="15" cy="9" r=".7"/>
+<circle cx="12" cy="14" r="2"/>
+</svg>`,
+
+fire:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M12 21c4 0 7-2.7 7-6.6 0-2.8-1.7-5.1-4.3-7.2.1 2.1-.7 3.3-1.7 4.1.2-3.8-1.5-6.5-4.2-8.8.2 4.1-3.8 6.1-3.8 10.4C5 18 8 21 12 21Z"/>
+</svg>`,
+
+sad:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="12" cy="12" r="9"/>
+<path d="M8 16s1.3-2 4-2 4 2 4 2M9 9h.01M15 9h.01"/>
+</svg>`,
+
+angry:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="12" cy="12" r="9"/>
+<path d="m8 9 2 1M16 9l-2 1M8 16c2-2 6-2 8 0"/>
+</svg>`,
+
+like:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M7 10v10H4V10h3ZM7 20h10a2 2 0 0 0 2-2l1-6a2 2 0 0 0-2-2h-5l1-5a3 3 0 0 0-4 0l-2 5"/>
+</svg>`,
+
+reply:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.4-3.4A7.4 7.4 0 0 1 4.5 12 7.5 7.5 0 0 1 12 4.5a7.5 7.5 0 0 1 8 7Z"/>
+</svg>`,
+
+trash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/>
+</svg>`,
+
+play:`<svg viewBox="0 0 24 24" fill="currentColor">
+<path d="m8 5 11 7-11 7V5Z"/>
+</svg>`,
+
+pause:`<svg viewBox="0 0 24 24" fill="currentColor">
+<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>
+</svg>`,
+
+send:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="m21 3-7.5 18-3.5-7-7-3.5L21 3Z"/>
+<path d="m10 14 5-5"/>
+</svg>`
 };
 
 const modules={};
 
 modules.db={
-users:null,posts:null,stories:null,messages:null,notifications:null,settings:null,chats:null,
+users:null,
+posts:null,
+stories:null,
+messages:null,
+notifications:null,
+settings:null,
+chats:null,
+
 init(){
+
 this.users=NOVA.get("users",null);
 this.posts=NOVA.get("posts",null);
 this.stories=NOVA.get("stories",null);
 this.messages=NOVA.get("messages",[]);
 this.notifications=NOVA.get("notifications",[]);
-this.settings=NOVA.get("settings",{notifications:true,online:true,autoplay:true,theme:"dark"});
+this.settings=NOVA.get("settings",{
+notifications:true,
+online:true,
+autoplay:true,
+theme:"dark"
+});
 this.chats=NOVA.get("chats",{});
+
 if(!this.users){
 this.users=[
-{id:"me",name:"Carlos",handle:"@carlos",bio:"Welcome to NOVA 🚀",avatar:"",followers:0,following:0,followingUsers:[],online:true},
-{id:"mia",name:"Mia Carter",handle:"@miacarter",bio:"Creator • Fashion ✨",avatar:"https://i.pravatar.cc/300?img=47",followers:5420,following:310,followingUsers:[],online:true},
-{id:"alex",name:"Alex Stone",handle:"@alexstone",bio:"Photography • Travel",avatar:"https://i.pravatar.cc/300?img=12",followers:1830,following:241,followingUsers:[],online:true},
-{id:"luna",name:"Luna Rose",handle:"@lunarose",bio:"Music • Creator",avatar:"https://i.pravatar.cc/300?img=44",followers:9210,following:532,followingUsers:[],online:true},
-{id:"leo",name:"Leo James",handle:"@leojames",bio:"Building cool things",avatar:"https://i.pravatar.cc/300?img=33",followers:750,following:402,followingUsers:[],online:true},
-{id:"sara",name:"Sara Moon",handle:"@saramoon",bio:"Lifestyle",avatar:"https://i.pravatar.cc/300?img=49",followers:2100,following:420,followingUsers:[],online:true}
+{id:"me",name:"Carlos",handle:"@carlos",bio:"Welcome to NOVA 🚀",avatar:"",
+followers:0,following:0,followingUsers:[],online:true},
+
+{id:"mia",name:"Mia Carter",handle:"@miacarter",
+bio:"Creator • Fashion ✨",
+avatar:"https://i.pravatar.cc/300?img=47",
+followers:5420,following:310,followingUsers:[],online:true},
+
+{id:"alex",name:"Alex Stone",handle:"@alexstone",
+bio:"Photography • Travel",
+avatar:"https://i.pravatar.cc/300?img=12",
+followers:1830,following:241,followingUsers:[],online:true},
+
+{id:"luna",name:"Luna Rose",handle:"@lunarose",
+bio:"Music • Creator",
+avatar:"https://i.pravatar.cc/300?img=44",
+followers:9210,following:532,followingUsers:[],online:true},
+
+{id:"leo",name:"Leo James",handle:"@leojames",
+bio:"Building cool things",
+avatar:"https://i.pravatar.cc/300?img=33",
+followers:750,following:402,followingUsers:[],online:true},
+
+{id:"sara",name:"Sara Moon",handle:"@saramoon",
+bio:"Lifestyle",
+avatar:"https://i.pravatar.cc/300?img=49",
+followers:2100,following:420,followingUsers:[],online:true}
 ]
 }
+
 if(!this.posts){
 this.posts=[
-{id:"p1",user:"mia",text:"Welcome to NOVA 🚀\nYour social universe starts here. #nova #social",media:"https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1000&q=80",mediaType:"image",likes:["alex"],comments:[],reactions:{},reposts:2,savedBy:[],created:Date.now()-3600000},
-{id:"p2",user:"alex",text:"Beautiful day for creating something new.",media:"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1000&q=80",mediaType:"image",likes:["mia"],comments:[],reactions:{},reposts:1,savedBy:[],created:Date.now()-7200000},
-{id:"p3",user:"luna",text:"What are you listening to today?",media:"",mediaType:"",likes:["mia"],comments:[],reactions:{},reposts:4,savedBy:[],created:Date.now()-86400000}
+{
+id:"p1",user:"mia",
+text:"Welcome to NOVA 🚀\nYour social universe starts here. #nova #social",
+media:"https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1000&q=80",
+mediaType:"image",likes:["alex"],comments:[],
+reactions:{},reposts:2,savedBy:[],
+created:Date.now()-3600000
+},
+{
+id:"p2",user:"alex",
+text:"Beautiful day for creating something new.",
+media:"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1000&q=80",
+mediaType:"image",likes:["mia"],comments:[],
+reactions:{},reposts:1,savedBy:[],
+created:Date.now()-7200000
+},
+{
+id:"p3",user:"luna",
+text:"What are you listening to today?",
+media:"",mediaType:"",likes:["mia"],comments:[],
+reactions:{},reposts:4,savedBy:[],
+created:Date.now()-86400000
+}
 ]
 }
+
 if(!this.stories){
 this.stories=[
-{id:"s1",user:"mia",text:"NOVA ✨",media:"https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80",mediaType:"image",reactions:{},replies:[],created:Date.now()-500000},
-{id:"s2",user:"alex",text:"Travel",media:"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",mediaType:"image",reactions:{},replies:[],created:Date.now()-400000},
-{id:"s3",user:"luna",text:"Music",media:"",mediaType:"text",reactions:{},replies:[],created:Date.now()-300000}
+{
+id:"s1",user:"mia",text:"NOVA ✨",
+media:"https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80",
+mediaType:"image",reactions:{},replies:[],
+created:Date.now()-500000
+},
+{
+id:"s2",user:"alex",text:"Travel",
+media:"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",
+mediaType:"image",reactions:{},replies:[],
+created:Date.now()-400000
+},
+{
+id:"s3",user:"luna",text:"Music",
+media:"",mediaType:"text",reactions:{},replies:[],
+created:Date.now()-300000
+}
 ]
 }
+
+this.stories.forEach(s=>{
+s.reactions??={};
+s.replies??=[];
+});
+
+this.posts.forEach(p=>{
+p.likes??=[];
+p.comments??=[];
+p.reactions??={};
+p.savedBy??=[];
+p.reposts??=0;
+});
+
 this.save()
 },
+
 save(){
-["users","posts","stories","messages","notifications","settings","chats"].forEach(k=>NOVA.set(k,this[k]))
+[
+"users","posts","stories","messages",
+"notifications","settings","chats"
+].forEach(k=>NOVA.set(k,this[k]))
 },
-me(){return this.user(auth.session?.userId||"me")},
-user(id){return this.users.find(x=>x.id===id)},
-post(id){return this.posts.find(x=>x.id===id)},
-following(id){return(this.me()?.followingUsers||[]).includes(id)},
+
+me(){
+return this.user(auth.session?.userId||"me")
+},
+
+user(id){
+return this.users.find(x=>x.id===id)
+},
+
+post(id){
+return this.posts.find(x=>x.id===id)
+},
+
+following(id){
+return(this.me()?.followingUsers||[]).includes(id)
+},
+
 follow(id){
 let m=this.me(),u=this.user(id);
 if(!u||!m)return;
+
 m.followingUsers??=[];
-if(!m.followingUsers.includes(id)){m.followingUsers.push(id);m.following++;u.followers++}
+
+if(!m.followingUsers.includes(id)){
+m.followingUsers.push(id);
+m.following++;
+u.followers++;
+}
+
 this.save()
 },
+
 unfollow(id){
 let m=this.me(),u=this.user(id);
-m.followingUsers=(m.followingUsers||[]).filter(x=>x!==id);
+
+m.followingUsers=(m.followingUsers||[])
+.filter(x=>x!==id);
+
 m.following=Math.max(0,m.following-1);
+
 if(u)u.followers=Math.max(0,u.followers-1);
+
 this.save()
 },
+
 notify(type,user,text,extra={}){
 if(!this.settings.notifications)return;
+
 this.notifications.unshift({
-id:NOVA.uid("notif"),type,user,text,time:Date.now(),read:false,...extra
+id:NOVA.uid("notif"),
+type,
+user,
+text,
+time:Date.now(),
+read:false,
+...extra
 });
+
 this.notifications=this.notifications.slice(0,100);
 this.save()
 },
-chatKey(a,b){return[a,b].sort().join("__")},
+
+chatKey(a,b){
+return[a,b].sort().join("__")
+},
+
 chat(a,b){
+
 let k=this.chatKey(a,b);
-this.chats[k]??=[];
+
+if(!this.chats[k]){
+this.chats[k]=[];
+}
+
+if(!Array.isArray(this.chats[k])){
+this.chats[k]=this.chats[k].messages||[];
+}
+
+this.chats[k].forEach(m=>{
+m.reactionBy??={}
+});
+
 return this.chats[k]
 },
+
 sendMessage(to,obj){
+
 let me=this.me()?.id;
+
+if(!me||!to)return null;
+
 let arr=this.chat(me,to);
-arr.push({id:NOVA.uid("msg"),from:me,to,time:Date.now(),...obj});
+
+let msg={
+id:NOVA.uid("msg"),
+from:me,
+to,
+time:Date.now(),
+kind:"text",
+text:"",
+replyTo:null,
+reactionBy:{},
+...obj
+};
+
+arr.push(msg);
+
 this.save();
-return arr.at(-1)
+
+return msg
 }
 };
 
 const ui={
 avatar(u,cl=""){
 if(!u)return`<div class="avatar ${cl}">?</div>`;
+
 return u.avatar
-?`<div class="avatar ${cl} ${u.online?"online":""}"><img src="${NOVA.esc(u.avatar)}"></div>`
-:`<div class="avatar ${cl} ${u.online?"online":""}">${NOVA.esc((u.name||"?")[0])}</div>`
+?`<div class="avatar ${cl} ${u.online?"online":""}">
+<img src="${NOVA.esc(u.avatar)}">
+</div>`
+:`<div class="avatar ${cl} ${u.online?"online":""}">
+${NOVA.esc((u.name||"?")[0])}
+</div>`
 },
-head(u){
+
+head(u,p){
 return`<div class="postHead" data-user="${u.id}">
 ${this.avatar(u)}
 <div class="userInfo">
 <div class="name">${NOVA.esc(u.name)}</div>
 <div class="handle">${NOVA.esc(u.handle)}</div>
 </div>
-<div class="time">${NOVA.time(Date.now())}</div>
+<div class="time">${p?NOVA.time(p.created):""}</div>
 </div>`
 },
+
 text(t){
-return NOVA.esc(t).replace(/(^|\s)(#[a-zA-Z0-9_]+)/g,'$1<span style="color:#a78bfa;font-weight:700">$2</span>')
+return NOVA.esc(t).replace(
+/(^|\s)(#[a-zA-Z0-9_]+)/g,
+'$1<span style="color:#a78bfa;font-weight:700">$2</span>'
+)
 },
+
 reaction(type){
 return ICONS[type]||ICONS.heart
 }
 };
 
 modules.stories={
+
 grouped(){
+
 let map=new Map;
-[...modules.db.stories].sort((a,b)=>a.created-b.created).forEach(s=>{
+
+[...modules.db.stories]
+.sort((a,b)=>a.created-b.created)
+.forEach(s=>{
+
 if(!map.has(s.user))map.set(s.user,[]);
+
 map.get(s.user).push(s)
 });
-return [...map.entries()].map(([user,items])=>({user,items}))
+
+return[...map.entries()]
+.map(([user,items])=>({user,items}))
 },
+
+stopVideo(){
+
+let v=$("storyVideo");
+
+if(v){
+try{
+v.pause();
+v.removeAttribute("src");
+v.load()
+}catch(e){}
+}
+
+clearTimeout(NOVA.state.storyTimer);
+NOVA.state.storyTimer=null;
+NOVA.state.storyPausedByLongPress=false
+},
+
 render(){
+
 let groups=this.grouped();
-$("storiesArea").innerHTML=`<div class="stories">
+
+let area=$("storiesArea");
+if(!area)return;
+
+area.innerHTML=`<div class="stories">
+
 <button class="story" data-story-create>
-<div class="storyRing"><div class="storyInner">
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-</div></div>Your story
+<div class="storyRing">
+<div class="storyInner">
+<svg class="svg" viewBox="0 0 24 24"
+fill="none" stroke="currentColor" stroke-width="2">
+<path d="M12 5v14M5 12h14"/>
+</svg>
+</div>
+</div>
+Your story
 </button>
+
 ${groups.map(g=>{
-let s=g.items.at(-1),u=modules.db.user(g.user);
+
+let s=g.items.at(-1);
+let u=modules.db.user(g.user);
+
 return`<button class="story" data-story-user="${g.user}">
-<div class="storyRing"><div class="storyInner">${
-s.media?(s.mediaType==="video"
-?`<video src="${NOVA.esc(s.media)}" muted playsinline></video>`
-:`<img src="${NOVA.esc(s.media)}">`)
-:`<span>✦</span>`}</div></div>
+<div class="storyRing">
+<div class="storyInner">
+${
+s.media
+?s.mediaType==="video"
+?`<video src="${NOVA.esc(s.media)}"
+muted playsinline preload="metadata"></video>`
+:`<img src="${NOVA.esc(s.media)}">`
+:`<span>✦</span>`
+}
+</div>
+</div>
 ${NOVA.esc((u?.name||"User").split(" ")[0])}
 </button>`
-}).join("")}</div>`
+
+}).join("")}
+
+</div>`
 },
+
 create(){
+
 NOVA.modal("Create story",`
 <div class="form">
-<textarea id="storyText" rows="4" placeholder="Write your story..."></textarea>
-<input id="storyFile" type="file" accept="image/*,video/*">
-<video id="storyVideoPreview" class="preview" playsinline muted></video>
+
+<textarea id="storyText" rows="4"
+placeholder="Write your story..."></textarea>
+
+<input id="storyFile" type="file"
+accept="image/*,video/*">
+
+<video id="storyVideoPreview"
+class="preview" playsinline muted></video>
+
 <img id="storyImagePreview" class="preview">
+
 <div id="storyFileInfo" class="smallText"></div>
-<button class="btn full" data-story-submit>Share story</button>
+
+<button class="btn full" data-story-submit>
+Share story
+</button>
+
 </div>`);
-$("storyFile").onchange=e=>this.file(e.target.files[0])
+
+$("storyFile").onchange=e=>
+this.file(e.target.files[0])
 },
+
 async file(f){
+
 if(!f)return;
+
 let data=await NOVA.image(f);
+
 $("storyImagePreview").style.display="none";
 $("storyVideoPreview").style.display="none";
+
 if(f.type.startsWith("video/")){
+
 $("storyVideoPreview").src=data;
 $("storyVideoPreview").dataset.data=data;
 $("storyVideoPreview").dataset.type="video";
 $("storyVideoPreview").style.display="block";
-$("storyFileInfo").textContent="Video selected";
+$("storyFileInfo").textContent="Video selected"
+
 }else{
+
 $("storyImagePreview").src=data;
 $("storyImagePreview").dataset.data=data;
 $("storyImagePreview").dataset.type="image";
 $("storyImagePreview").style.display="block";
-$("storyFileInfo").textContent="Photo selected";
+$("storyFileInfo").textContent="Photo selected"
+
 }
 },
+
 submit(){
-let t=$("storyText").value.trim(),v=$("storyVideoPreview"),i=$("storyImagePreview");
+
+let t=$("storyText").value.trim();
+let v=$("storyVideoPreview");
+let i=$("storyImagePreview");
+
 let media=v.dataset.data||i.dataset.data||"";
 let type=v.dataset.type||i.dataset.type||"text";
-if(!t&&!media)return NOVA.toast("Add text or media");
-let d=modules.db,m=d.me();
-d.stories.push({id:NOVA.uid("story"),user:m.id,text:t,media,mediaType:type,reactions:{},replies:[],created:Date.now()});
-d.save();NOVA.closeModal();NOVA.render("home");NOVA.toast("Story added ✨")
+
+if(!t&&!media)
+return NOVA.toast("Add text or media");
+
+let d=modules.db;
+let m=d.me();
+
+d.stories.push({
+id:NOVA.uid("story"),
+user:m.id,
+text:t,
+media,
+mediaType:type,
+reactions:{},
+replies:[],
+created:Date.now()
+});
+
+d.save();
+NOVA.closeModal();
+NOVA.render("home");
+NOVA.toast("Story added ✨")
 },
+
 openUser(id){
+
+this.stopVideo();
+
 NOVA.state.storyUser=id;
 NOVA.state.storyIndex=0;
+
 this.show()
 },
+
 show(){
+
+this.stopVideo();
+
 let id=NOVA.state.storyUser;
-let list=this.grouped().find(x=>x.user===id)?.items||[];
+
+let list=this.grouped()
+.find(x=>x.user===id)?.items||[];
+
 if(!list.length)return this.close();
-let s=list[NOVA.state.storyIndex],u=modules.db.user(id);
-let reactions=["heart","laugh","wow","fire","like","sad","angry"];
+
+if(NOVA.state.storyIndex>=list.length)
+NOVA.state.storyIndex=list.length-1;
+
+let s=list[NOVA.state.storyIndex];
+let u=modules.db.user(id);
+
+let reactions=[
+"heart","laugh","wow","fire",
+"like","sad","angry"
+];
+
+let myReaction=null;
+
+Object.keys(s.reactions||{}).forEach(k=>{
+if((s.reactions[k]||[]).includes(modules.db.me().id))
+myReaction=k
+});
+
 $("viewerIn").innerHTML=`
+
 <div class="viewerTop">
+
 <div class="progress"></div>
-<div class="row" style="margin-top:9px">${ui.avatar(u,"sm")}
-<div><b>${NOVA.esc(u.name)}</b><div class="smallText">${NOVA.time(s.created)}</div></div>
+
+<div class="row" style="margin-top:9px">
+
+${ui.avatar(u,"sm")}
+
+<div>
+<b>${NOVA.esc(u.name)}</b>
+<div class="smallText">${NOVA.time(s.created)}</div>
+</div>
+
 </div>
 </div>
+
 <button class="viewerClose" data-story-close>×</button>
-${s.media?
-s.mediaType==="video"
-?`<video id="storyVideo" class="viewerMedia" src="${NOVA.esc(s.media)}" autoplay playsinline preload="auto"></video>`
-:`<img class="viewerMedia" src="${NOVA.esc(s.media)}">`
-:`<div class="viewerText">${ui.text(s.text)}</div>`}
-${s.text&&s.media?`<div style="position:absolute;bottom:155px;left:15px;right:15px;z-index:9;background:#0007;padding:10px;border-radius:13px">${ui.text(s.text)}</div>`:""}
-<div class="viewerNav"><button class="viewerSide" data-story-prev></button><button class="viewerSide" data-story-next></button></div>
+
+${
+s.media
+?s.mediaType==="video"
+?`<video
+id="storyVideo"
+class="viewerMedia"
+src="${NOVA.esc(s.media)}"
+autoplay
+playsinline
+preload="auto"
+></video>`
+:`<img class="viewerMedia"
+src="${NOVA.esc(s.media)}">`
+:`<div class="viewerText">${ui.text(s.text)}</div>`
+}
+
+${s.text&&s.media
+?`<div style="
+position:absolute;bottom:155px;left:15px;right:15px;
+z-index:9;background:#0007;padding:10px;
+border-radius:13px">${ui.text(s.text)}</div>`
+:""}
+
+<div class="viewerNav">
+<button class="viewerSide" data-story-prev></button>
+<button class="viewerSide" data-story-next></button>
+</div>
+
 <div class="storyReplies">
+
 ${(s.replies||[]).map(r=>{
+
 let x=modules.db.user(r.user);
-return`<div class="storyReply"><b>${NOVA.esc(x?.name||"User")}</b> ${NOVA.esc(r.text)}</div>`
+
+return`<div class="storyReply">
+<b>${NOVA.esc(x?.name||"User")}</b>
+${NOVA.esc(r.text)}
+</div>`
+
 }).join("")}
+
 </div>
+
 <div class="storyReactRow">
-${reactions.map(x=>`<button data-story-react="${x}">${ui.reaction(x)}</button>`).join("")}
+
+${reactions.map(x=>
+`<button
+class="${myReaction===x?"active":""}"
+data-story-react="${x}">
+${ui.reaction(x)}
+</button>`
+).join("")}
+
 </div>
+
 <div class="viewerBottom">
-<input id="storyReplyInput" placeholder="Reply to story...">
-<button class="viewerBtn" data-story-reply>${ICONS.send}</button>
-</div>`;
+
+<input id="storyReplyInput"
+placeholder="Reply to story...">
+
+<button class="viewerBtn" data-story-reply>
+${ICONS.send}
+</button>
+
+</div>
+`;
+
 $("viewer").classList.add("open");
 
 let vid=$("storyVideo");
+
 if(vid){
+
 vid.muted=false;
-vid.play().catch(()=>{vid.muted=true;vid.play().catch(()=>{})});
-let timer;
-vid.addEventListener("pointerdown",()=>{
-clearTimeout(timer);
-timer=setTimeout(()=>vid.pause(),260)
+
+let playPromise=vid.play();
+
+if(playPromise?.catch){
+playPromise.catch(()=>{
+vid.muted=true;
+vid.play().catch(()=>{})
+})
+}
+
+let pressTimer=null;
+
+const startPress=()=>{
+clearTimeout(pressTimer);
+
+pressTimer=setTimeout(()=>{
+
+NOVA.state.storyPausedByLongPress=true;
+
+try{vid.pause()}catch(err){}
+
+},420)
+};
+
+const endPress=()=>{
+clearTimeout(pressTimer);
+
+if(NOVA.state.storyPausedByLongPress){
+
+NOVA.state.storyPausedByLongPress=false;
+
+if(!vid.ended){
+vid.play().catch(()=>{})
+}
+
+}
+};
+
+vid.addEventListener("pointerdown",startPress);
+vid.addEventListener("pointerup",endPress);
+vid.addEventListener("pointercancel",endPress);
+vid.addEventListener("pointerleave",endPress);
+
+vid.addEventListener("ended",()=>{
+if($("viewer").classList.contains("open"))
+this.next()
 });
-vid.addEventListener("pointerup",()=>{
-clearTimeout(timer);
-if(vid.paused)vid.play().catch(()=>{})
-});
-vid.addEventListener("touchstart",()=>{
-clearTimeout(timer);
-timer=setTimeout(()=>vid.pause(),260)
-},{passive:true});
-vid.addEventListener("touchend",()=>{
-clearTimeout(timer);
-if(vid.paused)vid.play().catch(()=>{})
-},{passive:true});
-vid.addEventListener("ended",()=>this.next())
+
 }
 },
+
 react(type){
-let list=this.grouped().find(x=>x.user===NOVA.state.storyUser)?.items||[];
+
+let list=this.grouped()
+.find(x=>x.user===NOVA.state.storyUser)?.items||[];
+
 let s=list[NOVA.state.storyIndex];
+
+if(!s)return;
+
 let me=modules.db.me().id;
+
 s.reactions??={};
-Object.keys(s.reactions).forEach(k=>s.reactions[k]=(s.reactions[k]||[]).filter(x=>x!==me));
+
+let current=null;
+
+Object.keys(s.reactions).forEach(k=>{
+
+if((s.reactions[k]||[]).includes(me))
+current=k;
+
+s.reactions[k]=(s.reactions[k]||[])
+.filter(x=>x!==me);
+
+});
+
+if(current!==type){
+
 s.reactions[type]??=[];
 s.reactions[type].push(me);
-if(s.user!==me)modules.db.notify("story_reaction",me,"reacted to your story",{storyId:s.id});
-modules.db.save();this.show()
-},
-reply(){
-let inp=$("storyReplyInput"),text=inp?.value.trim();
-if(!text)return;
-let list=this.grouped().find(x=>x.user===NOVA.state.storyUser)?.items||[];
-let s=list[NOVA.state.storyIndex],me=modules.db.me().id;
-s.replies??=[];
-s.replies.push({id:NOVA.uid("reply"),user:me,text,time:Date.now()});
+
 if(s.user!==me){
-modules.db.sendMessage(s.user,{kind:"text",text:"Story reply: "+text,storyId:s.id});
-modules.db.notify("story_reply",me,"replied to your story",{storyId:s.id});
+
+modules.db.notify(
+"story_reaction",
+me,
+"reacted to your story",
+{storyId:s.id}
+);
+
 }
-modules.db.save();this.show();NOVA.toast("Story reply sent")
+}
+
+modules.db.save();
+
+this.show();
+
+NOVA.toast(current===type?"Reaction removed":"Reaction sent")
 },
+
+reply(){
+
+let inp=$("storyReplyInput");
+let text=inp?.value.trim();
+
+if(!text)return;
+
+let list=this.grouped()
+.find(x=>x.user===NOVA.state.storyUser)?.items||[];
+
+let s=list[NOVA.state.storyIndex];
+
+if(!s)return;
+
+let me=modules.db.me().id;
+
+s.replies??=[];
+
+s.replies.push({
+id:NOVA.uid("reply"),
+user:me,
+text,
+time:Date.now()
+});
+
+if(s.user!==me){
+
+modules.db.sendMessage(
+s.user,
+{
+kind:"text",
+text:text,
+replyTo:null,
+storyId:s.id,
+storyReply:true
+}
+);
+
+modules.db.notify(
+"story_reply",
+me,
+"replied to your story",
+{storyId:s.id}
+);
+
+}
+
+modules.db.save();
+
+this.show();
+
+NOVA.toast("Story reply sent")
+},
+
 next(){
-let list=this.grouped().find(x=>x.user===NOVA.state.storyUser)?.items||[];
-if(NOVA.state.storyIndex<list.length-1){NOVA.state.storyIndex++;this.show()}
-else this.close()
+
+let list=this.grouped()
+.find(x=>x.user===NOVA.state.storyUser)?.items||[];
+
+if(NOVA.state.storyIndex<list.length-1){
+
+this.stopVideo();
+
+NOVA.state.storyIndex++;
+
+this.show()
+
+}else{
+
+this.close()
+
+}
 },
+
 prev(){
-if(NOVA.state.storyIndex>0){NOVA.state.storyIndex--;this.show()}
+
+if(NOVA.state.storyIndex>0){
+
+this.stopVideo();
+
+NOVA.state.storyIndex--;
+
+this.show()
+
+}
 },
-close(){$("viewer").classList.remove("open")}
+
+close(){
+
+this.stopVideo();
+
+let viewer=$("viewer");
+
+viewer.classList.remove("open");
+
+setTimeout(()=>{
+if(!$("viewer").classList.contains("open")){
+$("viewerIn").innerHTML=""
+}
+},20);
+
+NOVA.state.storyUser=null;
+NOVA.state.storyIndex=0
+}
 };
 
 modules.posts={
+
 create(){
+
 NOVA.modal("Create post",`
 <div class="form">
-<textarea id="postText" rows="5" placeholder="What's happening?"></textarea>
-<input id="postFile" type="file" accept="image/*,video/*">
+
+<textarea id="postText" rows="5"
+placeholder="What's happening?"></textarea>
+
+<input id="postFile" type="file"
+accept="image/*,video/*">
+
 <img id="postImagePreview" class="preview">
-<video id="postVideoPreview" class="preview" controls playsinline></video>
+
+<video id="postVideoPreview"
+class="preview" controls playsinline></video>
+
 <div id="postFileInfo" class="smallText"></div>
-<button class="btn full" data-create-submit>Publish post</button>
+
+<button class="btn full" data-create-submit>
+Publish post
+</button>
+
 </div>`);
+
 $("postFile").onchange=async e=>{
-let f=e.target.files[0];if(!f)return;
+
+let f=e.target.files[0];
+
+if(!f)return;
+
 let x=await NOVA.image(f);
+
 $("postImagePreview").style.display="none";
 $("postVideoPreview").style.display="none";
+
 if(f.type.startsWith("video/")){
-$("postVideoPreview").src=x;$("postVideoPreview").dataset.data=x;
-$("postVideoPreview").dataset.type="video";$("postVideoPreview").style.display="block";
+
+$("postVideoPreview").src=x;
+$("postVideoPreview").dataset.data=x;
+$("postVideoPreview").dataset.type="video";
+$("postVideoPreview").style.display="block";
 $("postFileInfo").textContent="Video selected"
+
 }else{
-$("postImagePreview").src=x;$("postImagePreview").dataset.data=x;
-$("postImagePreview").dataset.type="image";$("postImagePreview").style.display="block";
+
+$("postImagePreview").src=x;
+$("postImagePreview").dataset.data=x;
+$("postImagePreview").dataset.type="image";
+$("postImagePreview").style.display="block";
 $("postFileInfo").textContent="Photo selected"
+
 }
 }
 },
+
 submit(){
-let text=$("postText").value.trim(),i=$("postImagePreview"),v=$("postVideoPreview");
-let media=v.dataset.data||i.dataset.data||"",type=v.dataset.type||i.dataset.type||"";
-if(!text&&!media)return NOVA.toast("Write something or add media");
+
+let text=$("postText").value.trim();
+let i=$("postImagePreview");
+let v=$("postVideoPreview");
+
+let media=v.dataset.data||i.dataset.data||"";
+let type=v.dataset.type||i.dataset.type||"";
+
+if(!text&&!media)
+return NOVA.toast("Write something or add media");
+
 let d=modules.db;
+
 d.posts.unshift({
-id:NOVA.uid("post"),user:d.me().id,text,media,mediaType:type,
-likes:[],comments:[],reactions:{},reposts:0,savedBy:[],created:Date.now()
+id:NOVA.uid("post"),
+user:d.me().id,
+text,
+media,
+mediaType:type,
+likes:[],
+comments:[],
+reactions:{},
+reposts:0,
+savedBy:[],
+created:Date.now()
 });
-d.save();NOVA.closeModal();NOVA.go("home");NOVA.toast("Post published")
+
+d.save();
+
+NOVA.closeModal();
+NOVA.go("home");
+NOVA.toast("Post published")
 },
+
 card(p){
-let d=modules.db,u=d.user(p.user),me=d.me().id;
-let liked=(p.likes||[]).includes(me),saved=(p.savedBy||[]).includes(me);
-let myReact=Object.keys(p.reactions||{}).find(k=>(p.reactions[k]||[]).includes(me));
-let reactCount=Object.values(p.reactions||{}).reduce((a,b)=>a+b.length,0);
+
+let d=modules.db;
+let u=d.user(p.user);
+let me=d.me().id;
+
+let liked=(p.likes||[]).includes(me);
+let saved=(p.savedBy||[]).includes(me);
+
+let myReact=Object.keys(p.reactions||{})
+.find(k=>(p.reactions[k]||[]).includes(me));
+
+let reactCount=Object.values(p.reactions||{})
+.reduce((a,b)=>a+b.length,0);
+
 return`<article class="card">
-${ui.head(u)}
+
+${ui.head(u,p)}
+
 <div class="postText">${ui.text(p.text)}</div>
-${p.media?(p.mediaType==="video"
-?`<video class="media" src="${NOVA.esc(p.media)}" controls playsinline preload="metadata"></video>`
-:`<img class="media" src="${NOVA.esc(p.media)}">`):""}
+
+${p.media
+?(p.mediaType==="video"
+?`<video class="media"
+src="${NOVA.esc(p.media)}"
+controls playsinline preload="metadata"></video>`
+:`<img class="media"
+src="${NOVA.esc(p.media)}">`)
+:""}
+
 <div class="actions">
-<button class="action ${liked?"active":""}" data-post="like" data-id="${p.id}">${ICONS.heart}<span>${p.likes.length}</span></button>
-<button class="action" data-post="comments" data-id="${p.id}">${ICONS.reply}<span>${p.comments.length}</span></button>
-<button class="action ${myReact?"active":""}" data-post="reaction" data-id="${p.id}">${myReact?ui.reaction(myReact):ui.reaction("fire")}<span>${reactCount||""}</span></button>
-<button class="action" data-post="repost" data-id="${p.id}">↻ <span>${p.reposts||0}</span></button>
-<button class="action" data-post="save" data-id="${p.id}">${saved?"◆":"◇"}</button>
-<button class="action" data-post="share" data-id="${p.id}">↗</button>
-<button class="action" data-post="menu" data-id="${p.id}">•••</button>
+
+<button class="action ${liked?"active":""}"
+data-post="like" data-id="${p.id}">
+${ICONS.heart}<span>${p.likes.length}</span>
+</button>
+
+<button class="action"
+data-post="comments" data-id="${p.id}">
+${ICONS.reply}<span>${p.comments.length}</span>
+</button>
+
+<button class="action ${myReact?"active":""}"
+data-post="reaction" data-id="${p.id}">
+${myReact?ui.reaction(myReact):ui.reaction("fire")}
+<span>${reactCount||""}</span>
+</button>
+
+<button class="action"
+data-post="repost" data-id="${p.id}">
+↻ <span>${p.reposts||0}</span>
+</button>
+
+<button class="action"
+data-post="save" data-id="${p.id}">
+${saved?"◆":"◇"}
+</button>
+
+<button class="action"
+data-post="share" data-id="${p.id}">
+↗
+</button>
+
+<button class="action"
+data-post="menu" data-id="${p.id}">
+•••
+</button>
+
 </div>
-<div class="meta">${NOVA.time(p.created)} · ${p.likes.length} likes</div>
-${p.comments.length?`<div class="commentPreview"><b>${NOVA.esc(d.user(p.comments.at(-1).user)?.name||"User")}</b> ${NOVA.esc(p.comments.at(-1).text)}</div>`:""}
+
+<div class="meta">
+${NOVA.time(p.created)} · ${p.likes.length} likes
+</div>
+
+${p.comments.length
+?`<div class="commentPreview">
+<b>${NOVA.esc(
+d.user(p.comments.at(-1).user)?.name||"User"
+)}</b>
+${NOVA.esc(p.comments.at(-1).text)}
+</div>`
+:""}
+
 </article>`
 },
+
 like(id){
-let d=modules.db,p=d.post(id),m=d.me().id;
-if(p.likes.includes(m))p.likes=p.likes.filter(x=>x!==m);
-else{
+
+let d=modules.db;
+let p=d.post(id);
+let m=d.me().id;
+
+p.likes??=[];
+
+if(p.likes.includes(m)){
+
+p.likes=p.likes.filter(x=>x!==m)
+
+}else{
+
 p.likes.push(m);
-if(p.user!==m)d.notify("like",m,"liked your post",{postId:id});
+
+if(p.user!==m){
+
+d.notify(
+"like",
+m,
+"liked your post",
+{postId:id}
+);
+
 }
-d.save();NOVA.render(NOVA.state.screen)
+}
+
+d.save();
+NOVA.render(NOVA.state.screen)
 },
+
 save(id){
-let p=modules.db.post(id),m=modules.db.me().id;
+
+let p=modules.db.post(id);
+let m=modules.db.me().id;
+
 p.savedBy??=[];
-p.savedBy.includes(m)?p.savedBy=p.savedBy.filter(x=>x!==m):p.savedBy.push(m);
-modules.db.save();NOVA.render(NOVA.state.screen)
+
+p.savedBy.includes(m)
+?p.savedBy=p.savedBy.filter(x=>x!==m)
+:p.savedBy.push(m);
+
+modules.db.save();
+NOVA.render(NOVA.state.screen)
 },
+
 repost(id){
-let d=modules.db,p=d.post(id),m=d.me().id;
-d.posts.unshift({...JSON.parse(JSON.stringify(p)),id:NOVA.uid("post"),user:m,
-text:"Reposted: "+p.text,likes:[],comments:[],reactions:{},reposts:0,savedBy:[],created:Date.now()});
-d.save();NOVA.go("home");NOVA.toast("Reposted")
+
+let d=modules.db;
+let p=d.post(id);
+let m=d.me().id;
+
+d.posts.unshift({
+...JSON.parse(JSON.stringify(p)),
+id:NOVA.uid("post"),
+user:m,
+text:"Reposted: "+p.text,
+likes:[],
+comments:[],
+reactions:{},
+reposts:0,
+savedBy:[],
+created:Date.now()
+});
+
+d.save();
+NOVA.go("home");
+NOVA.toast("Reposted")
 },
+
 reaction(id){
-let p=modules.db.post(id),me=modules.db.me().id;
-let current=Object.keys(p.reactions||{}).find(k=>(p.reactions[k]||[]).includes(me));
-let types=["heart","laugh","wow","fire","like","sad","angry"];
-NOVA.modal("Reaction",`<div class="reactions">
-${types.map(x=>`<button class="react ${current===x?"active":""}" data-reaction="${x}" data-id="${id}">${ui.reaction(x)}</button>`).join("")}
+
+let p=modules.db.post(id);
+let me=modules.db.me().id;
+
+let current=Object.keys(p.reactions||{})
+.find(k=>(p.reactions[k]||[]).includes(me));
+
+let types=[
+"heart","laugh","wow","fire",
+"like","sad","angry"
+];
+
+NOVA.modal("Reaction",`
+<div class="reactions">
+
+${types.map(x=>
+`<button
+class="react ${current===x?"active":""}"
+data-reaction="${x}"
+data-id="${id}">
+${ui.reaction(x)}
+</button>`
+).join("")}
+
 </div>`)
 },
+
 react(id,type){
-let d=modules.db,p=d.post(id),m=d.me().id;
+
+let d=modules.db;
+let p=d.post(id);
+let m=d.me().id;
+
 p.reactions??={};
-Object.keys(p.reactions).forEach(k=>p.reactions[k]=(p.reactions[k]||[]).filter(x=>x!==m));
+
+let current=null;
+
+Object.keys(p.reactions).forEach(k=>{
+
+if((p.reactions[k]||[]).includes(m))
+current=k;
+
+p.reactions[k]=(p.reactions[k]||[])
+.filter(x=>x!==m);
+
+});
+
+if(current!==type){
+
 p.reactions[type]??=[];
 p.reactions[type].push(m);
-if(p.user!==m)d.notify("reaction",m,"reacted to your post",{postId:id});
-d.save();NOVA.closeModal();NOVA.render(NOVA.state.screen)
+
+if(p.user!==m){
+
+d.notify(
+"reaction",
+m,
+"reacted to your post",
+{postId:id}
+);
+
+}
+}
+
+d.save();
+NOVA.closeModal();
+NOVA.render(NOVA.state.screen)
 },
+
 comments(id){
-let p=modules.db.post(id),d=modules.db;
-NOVA.modal("Comments",`
-<div class="comments">
-${p.comments.map(c=>{
-let u=d.user(c.user);
-return`<div class="comment">${ui.avatar(u,"sm")}<div class="commentBody"><b>${NOVA.esc(u?.name||"User")}</b><div>${NOVA.esc(c.text)}</div><div class="commentTime">${NOVA.time(c.time)}</div></div></div>`
-}).join("")||`<div class="empty">No comments yet</div>`}
-</div>
-<div class="chatInput"><input id="commentInput" placeholder="Write a comment..."><button class="btn" data-comment="${id}">Send</button></div>`)
-},
-addComment(id){
-let v=$("commentInput")?.value.trim();if(!v)return;
-let p=modules.db.post(id),me=modules.db.me().id;
-p.comments.push({id:NOVA.uid("comment"),user:me,text:v,time:Date.now()});
-if(p.user!==me)modules.db.notify("comment",me,"commented on your post",{postId:id});
-modules.db.save();NOVA.closeModal();NOVA.render(NOVA.state.screen)
-},
-share(id){
+
 let p=modules.db.post(id);
-if(navigator.share)navigator.share({title:"NOVA",text:p.text}).catch(()=>{});
-else navigator.clipboard?.writeText(p.text).then(()=>NOVA.toast("Copied"))
-},
-menu(id){
-let p=modules.db.post(id),own=p.user===modules.db.me().id;
-NOVA.modal("Post options",`
-<div class="option" data-menu="stats" data-id="${id}">
-<div class="icon">◫</div><div class="optionMain"><b>Statistics</b><span>View performance</span></div>›
+let d=modules.db;
+
+NOVA.modal("Comments",`
+
+<div class="comments">
+
+${p.comments.map(c=>{
+
+let u=d.user(c.user);
+
+return`<div class="comment">
+
+${ui.avatar(u,"sm")}
+
+<div class="commentBody">
+<b>${NOVA.esc(u?.name||"User")}</b>
+<div>${NOVA.esc(c.text)}</div>
+<div class="commentTime">
+${NOVA.time(c.time)}
 </div>
-${own?`<div class="option" data-menu="delete" data-id="${id}">
-<div class="icon">${ICONS.trash}</div><div class="optionMain"><b>Delete post</b><span>Remove permanently</span></div>›
-</div>`:""}
+</div>
+
+</div>`
+
+}).join("")
+||`<div class="empty">No comments yet</div>`}
+
+</div>
+
+<div class="chatInput">
+
+<input id="commentInput"
+placeholder="Write a comment...">
+
+<button class="btn"
+data-comment="${id}">
+Send
+</button>
+
+</div>`)
+},
+
+addComment(id){
+
+let v=$("commentInput")?.value.trim();
+
+if(!v)return;
+
+let p=modules.db.post(id);
+let me=modules.db.me().id;
+
+p.comments.push({
+id:NOVA.uid("comment"),
+user:me,
+text:v,
+time:Date.now()
+});
+
+if(p.user!==me){
+
+modules.db.notify(
+"comment",
+me,
+"commented on your post",
+{postId:id}
+);
+
+}
+
+modules.db.save();
+NOVA.closeModal();
+NOVA.render(NOVA.state.screen)
+},
+
+share(id){
+
+let p=modules.db.post(id);
+
+if(navigator.share){
+
+navigator.share({
+title:"NOVA",
+text:p.text
+}).catch(()=>{})
+
+}else if(navigator.clipboard){
+
+navigator.clipboard
+.writeText(p.text)
+.then(()=>NOVA.toast("Copied"))
+
+}
+},
+
+menu(id){
+
+let p=modules.db.post(id);
+let own=p.user===modules.db.me().id;
+
+NOVA.modal("Post options",`
+
+<div class="option"
+data-menu="stats"
+data-id="${id}">
+
+<div class="icon">◫</div>
+
+<div class="optionMain">
+<b>Statistics</b>
+<span>View performance</span>
+</div>
+
+›
+</div>
+
+${own
+?`<div class="option"
+data-menu="delete"
+data-id="${id}">
+
+<div class="icon">
+${ICONS.trash}
+</div>
+
+<div class="optionMain">
+<b>Delete post</b>
+<span>Remove permanently</span>
+</div>
+
+›
+</div>`
+:""}
+
 `)
 }
 };
 
 modules.home={
+
 render(){
+
 let d=modules.db;
+
 $("home").innerHTML=`
+
 <div class="createBar card">
+
 ${ui.avatar(d.me(),"sm")}
-<button class="fakeInput" data-action="createPost">What's happening?</button>
-<button class="circle" data-action="createPost">
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+
+<button class="fakeInput"
+data-action="createPost">
+What's happening?
 </button>
+
+<button class="circle"
+data-action="createPost">
+
+<svg class="svg"
+viewBox="0 0 24 24"
+fill="none"
+stroke="currentColor"
+stroke-width="2">
+<path d="M12 5v14M5 12h14"/>
+</svg>
+
+</button>
+
 </div>
+
 <div id="storiesArea"></div>
-${[...d.posts].sort((a,b)=>b.created-a.created).map(p=>modules.posts.card(p)).join("")}
+
+${[...d.posts]
+.sort((a,b)=>b.created-a.created)
+.map(p=>modules.posts.card(p))
+.join("")}
+
 `;
+
 modules.stories.render()
 }
 };
 
 modules.explore={
+
 render(){
-let d=modules.db,q=NOVA.state.search.toLowerCase();
-let users=d.users.filter(u=>(u.name+" "+u.handle+" "+u.bio).toLowerCase().includes(q));
-let posts=d.posts.filter(p=>p.text.toLowerCase().includes(q));
+
+let d=modules.db;
+let q=NOVA.state.search.toLowerCase();
+
+let users=d.users.filter(u=>
+(u.name+" "+u.handle+" "+u.bio)
+.toLowerCase().includes(q)
+);
+
+let posts=d.posts.filter(p=>
+(p.text||"").toLowerCase().includes(q)
+);
+
 $("explore").innerHTML=`
+
 <div class="title">Explore</div>
-<div class="search"><span class="searchIcon">
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-</span><input id="exploreSearch" value="${NOVA.esc(NOVA.state.search)}" placeholder="Search people, posts..."></div>
-${q?`
-<div class="card">
-${users.map(u=>`<div class="people" data-user="${u.id}">
-${ui.avatar(u,"sm")}<div class="userInfo"><div class="name">${NOVA.esc(u.name)}</div><div class="handle">${NOVA.esc(u.handle)}</div></div>
-${u.id!==d.me().id?`<button class="btn small secondary" data-follow="${u.id}">${d.following(u.id)?"Following":"Follow"}</button>`:""}
-</div>`).join("")}
+
+<div class="search">
+
+<span class="searchIcon">
+
+<svg class="svg"
+viewBox="0 0 24 24"
+fill="none"
+stroke="currentColor"
+stroke-width="2">
+
+<circle cx="11" cy="11" r="7"/>
+<path d="m20 20-4-4"/>
+
+</svg>
+
+</span>
+
+<input id="exploreSearch"
+value="${NOVA.esc(NOVA.state.search)}"
+placeholder="Search people, posts...">
+
 </div>
-${posts.map(p=>modules.posts.card(p)).join("")||`<div class="empty">No posts found</div>`}`
+
+${q
+?`
+
+<div class="card">
+
+${users.map(u=>`
+
+<div class="people"
+data-user="${u.id}">
+
+${ui.avatar(u,"sm")}
+
+<div class="userInfo">
+<div class="name">${NOVA.esc(u.name)}</div>
+<div class="handle">${NOVA.esc(u.handle)}</div>
+</div>
+
+${u.id!==d.me().id
+?`<button class="btn small secondary"
+data-follow="${u.id}">
+${d.following(u.id)?"Following":"Follow"}
+</button>`
+:""}
+
+</div>
+
+`).join("")}
+
+</div>
+
+${posts.map(p=>modules.posts.card(p)).join("")
+||`<div class="empty">No posts found</div>`}
+
+`
 :`
+
 <div class="card">
-<div class="option"><div class="icon">⌁</div><div class="optionMain"><b>Trending</b><span>#nova · #music · #travel · #technology</span></div></div>
-<div class="option"><div class="icon">✦</div><div class="optionMain"><b>Discover creators</b><span>Find new people</span></div></div>
+
+<div class="option">
+
+<div class="icon">⌁</div>
+
+<div class="optionMain">
+<b>Trending</b>
+<span>#nova · #music · #travel · #technology</span>
 </div>
-<div class="card">${d.users.filter(u=>u.id!==d.me().id).map(u=>`<div class="people" data-user="${u.id}">
-${ui.avatar(u,"sm")}<div class="userInfo"><div class="name">${NOVA.esc(u.name)}</div><div class="handle">${NOVA.esc(u.bio)}</div></div>
-<button class="btn small secondary" data-follow="${u.id}">${d.following(u.id)?"Following":"Follow"}</button>
-</div>`).join("")}</div>`
+
+</div>
+
+<div class="option">
+
+<div class="icon">✦</div>
+
+<div class="optionMain">
+<b>Discover creators</b>
+<span>Find new people</span>
+</div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+${d.users
+.filter(u=>u.id!==d.me().id)
+.map(u=>`
+
+<div class="people"
+data-user="${u.id}">
+
+${ui.avatar(u,"sm")}
+
+<div class="userInfo">
+<div class="name">${NOVA.esc(u.name)}</div>
+<div class="handle">${NOVA.esc(u.bio)}</div>
+</div>
+
+<button class="btn small secondary"
+data-follow="${u.id}">
+${d.following(u.id)?"Following":"Follow"}
+</button>
+
+</div>
+
+`).join("")}
+
+</div>
+
+`
 }`;
+
 $("exploreSearch")?.addEventListener("input",e=>{
+
 NOVA.state.search=e.target.value;
+
 this.render();
-let x=$("exploreSearch");if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length)}
+
+let x=$("exploreSearch");
+
+if(x){
+x.focus();
+x.setSelectionRange(x.value.length,x.value.length)
+}
+
 })
 }
 };
 
 modules.create={
+
 render(){
+
 $("create").innerHTML=`
+
 <div class="title">Create</div>
+
 <div class="card">
-<div class="option" data-action="createPost"><div class="icon">＋</div><div class="optionMain"><b>Post</b><span>Text, photos and videos</span></div>›</div>
-<div class="option" data-action="createStory"><div class="icon">○</div><div class="optionMain"><b>Story</b><span>Photo, video, reactions and replies</span></div>›</div>
+
+<div class="option"
+data-action="createPost">
+
+<div class="icon">＋</div>
+
+<div class="optionMain">
+<b>Post</b>
+<span>Text, photos and videos</span>
+</div>
+
+›
+</div>
+
+<div class="option"
+data-action="createStory">
+
+<div class="icon">○</div>
+
+<div class="optionMain">
+<b>Story</b>
+<span>Photo, video, reactions and replies</span>
+</div>
+
+›
+</div>
+
 </div>`
 }
 };
 
 modules.profile={
+
 render(){
-this.renderUser(modules.db.me().id,true)
+
+this.renderUser(
+modules.db.me().id,
+true
+)
 },
+
 renderUser(id,own=false){
-let d=modules.db,u=d.user(id);
+
+let d=modules.db;
+let u=d.user(id);
+
 if(!u)return;
+
 let posts=d.posts.filter(p=>p.user===id);
-let tab=own?NOVA.state.profileTab:"posts";
-if(tab==="saved")posts=d.posts.filter(p=>(p.savedBy||[]).includes(d.me().id));
-if(tab==="liked")posts=d.posts.filter(p=>(p.likes||[]).includes(d.me().id));
-if(tab==="media")posts=posts.filter(p=>p.media);
+
+let tab=own
+?NOVA.state.profileTab
+:"posts";
+
+if(tab==="saved")
+posts=d.posts.filter(p=>
+(p.savedBy||[]).includes(d.me().id)
+);
+
+if(tab==="liked")
+posts=d.posts.filter(p=>
+(p.likes||[]).includes(d.me().id)
+);
+
+if(tab==="media")
+posts=posts.filter(p=>p.media);
+
 let stories=d.stories.filter(s=>s.user===id);
+
 $("profile").innerHTML=`
+
 <div class="card profile">
+
 ${ui.avatar(u,"big")}
-<div class="profileName">${NOVA.esc(u.name)}</div>
-<div class="handle">${NOVA.esc(u.handle)}</div>
-<div class="bio">${NOVA.esc(u.bio)}</div>
+
+<div class="profileName">
+${NOVA.esc(u.name)}
+</div>
+
+<div class="handle">
+${NOVA.esc(u.handle)}
+</div>
+
+<div class="bio">
+${NOVA.esc(u.bio)}
+</div>
+
 <div class="stats">
-<div class="stat"><b>${d.posts.filter(p=>p.user===id).length}</b><span>Posts</span></div>
-<div class="stat"><b>${u.followers}</b><span>Followers</span></div>
-<div class="stat"><b>${u.following}</b><span>Following</span></div>
+
+<div class="stat">
+<b>${d.posts.filter(p=>p.user===id).length}</b>
+<span>Posts</span>
 </div>
-${own?`<button class="btn" data-action="editProfile">Edit profile</button>
-<button class="btn secondary" data-go="settings">Settings</button>`
-:`<button class="btn" data-follow="${id}">${d.following(id)?"Following":"Follow"}</button>
-<button class="btn secondary" data-start-chat="${id}">Message</button>`}
+
+<div class="stat">
+<b>${u.followers}</b>
+<span>Followers</span>
 </div>
+
+<div class="stat">
+<b>${u.following}</b>
+<span>Following</span>
+</div>
+
+</div>
+
+${own
+?`<button class="btn"
+data-action="editProfile">
+Edit profile
+</button>
+
+<button class="btn secondary"
+data-go="settings">
+Settings
+</button>`
+:`<button class="btn"
+data-follow="${id}">
+${d.following(id)?"Following":"Follow"}
+</button>
+
+<button class="btn secondary"
+data-start-chat="${id}">
+Message
+</button>`}
+
+</div>
+
 <div class="tabs">
-${["posts","media","saved","liked"].map(x=>`<button class="tab ${tab===x?"active":""}" data-profile-tab="${x}" data-profile-owner="${id}">${x}</button>`).join("")}
+
+${["posts","media","saved","liked"]
+.map(x=>
+`<button
+class="tab ${tab===x?"active":""}"
+data-profile-tab="${x}"
+data-profile-owner="${id}">
+${x}
+</button>`
+).join("")}
+
 </div>
-${!own?`
+
+${!own
+?`
+
 <div class="card">
-<div class="option"><div class="icon">○</div><div class="optionMain"><b>Stories</b><span>${stories.length} stories</span></div></div>
-<div class="profileGrid">
-${stories.map(s=>s.media?(
-s.mediaType==="video"?`<video src="${NOVA.esc(s.media)}" muted playsinline></video>`:
-`<img src="${NOVA.esc(s.media)}">`):"").join("")}
+
+<div class="option">
+
+<div class="icon">○</div>
+
+<div class="optionMain">
+<b>Stories</b>
+<span>${stories.length} stories</span>
 </div>
-</div>`:""}
-${posts.map(p=>modules.posts.card(p)).join("")||`<div class="empty"><b>Nothing here</b>Content will appear here.</div>`}
+
+</div>
+
+<div class="profileGrid">
+
+${stories.map(s=>
+s.media
+?(s.mediaType==="video"
+?`<video
+src="${NOVA.esc(s.media)}"
+muted playsinline></video>`
+:`<img src="${NOVA.esc(s.media)}">`)
+:""
+).join("")}
+
+</div>
+
+</div>
+
+`
+:""}
+
+${posts.map(p=>modules.posts.card(p)).join("")
+||`<div class="empty">
+<b>Nothing here</b>
+Content will appear here.
+</div>`}
+
 `
 },
+
 edit(){
+
 let u=modules.db.me();
+
 NOVA.modal("Edit profile",`
+
 <div class="form">
-<input id="editName" value="${NOVA.esc(u.name)}">
-<input id="editHandle" value="${NOVA.esc(u.handle)}">
-<textarea id="editBio" rows="4">${NOVA.esc(u.bio)}</textarea>
-<input id="editAvatar" type="file" accept="image/*">
-<img id="editPreview" class="preview">
-<button class="btn full" data-profile-save>Save</button>
+
+<input id="editName"
+value="${NOVA.esc(u.name)}">
+
+<input id="editHandle"
+value="${NOVA.esc(u.handle)}">
+
+<textarea id="editBio"
+rows="4">${NOVA.esc(u.bio)}</textarea>
+
+<input id="editAvatar"
+type="file"
+accept="image/*">
+
+<img id="editPreview"
+class="preview">
+
+<button class="btn full"
+data-profile-save>
+Save
+</button>
+
 </div>`);
+
 $("editAvatar").onchange=async e=>{
+
 let x=await NOVA.image(e.target.files[0]);
-$("editPreview").src=x;$("editPreview").dataset.data=x;
+
+$("editPreview").src=x;
+$("editPreview").dataset.data=x;
 $("editPreview").style.display=x?"block":"none"
+
 }
 },
+
 save(){
+
 let u=modules.db.me();
+
 u.name=$("editName").value.trim()||u.name;
 u.handle=$("editHandle").value.trim()||u.handle;
-if(!u.handle.startsWith("@"))u.handle="@"+u.handle;
+
+if(!u.handle.startsWith("@"))
+u.handle="@"+u.handle;
+
 u.bio=$("editBio").value.trim();
-if($("editPreview").dataset.data)u.avatar=$("editPreview").dataset.data;
-modules.db.save();NOVA.closeModal();this.render();NOVA.toast("Profile updated")
+
+if($("editPreview").dataset.data)
+u.avatar=$("editPreview").dataset.data;
+
+modules.db.save();
+
+NOVA.closeModal();
+this.render();
+NOVA.toast("Profile updated")
 },
+
 showUser(id){
+
 NOVA.state.chatProfile=id;
+
 NOVA.go("profile");
+
 this.renderUser(id,false)
 }
 };
 
 modules.messages={
+
 render(){
+
+/* normal inbox = normal app */
+if(!NOVA.state.activeChat){
+document.body.classList.remove("chat-open")
+}
+
 if(NOVA.state.chatProfile){
 this.profileInChat(NOVA.state.chatProfile);
 return
 }
+
 if(NOVA.state.activeChat){
 this.chat(NOVA.state.activeChat);
 return
 }
-let d=modules.db,me=d.me();
+
+let d=modules.db;
+let me=d.me();
+
 let users=d.users.filter(u=>u.id!==me.id);
+
 $("messages").innerHTML=`
+
 <div class="title">Messages</div>
+
 <div class="card">
+
 ${users.map(u=>{
-let arr=d.chat(me.id,u.id),last=arr.at(-1);
-return`<button class="chatRow" data-chat="${u.id}">
+
+let arr=d.chat(me.id,u.id);
+let last=arr.at(-1);
+
+return`<button
+class="chatRow"
+data-chat="${u.id}">
+
 ${ui.avatar(u)}
-<div class="chatMain"><b>${NOVA.esc(u.name)}</b><div>${NOVA.esc(last?.text||this.preview(last)||"Start a conversation")}</div></div>
-<div class="time">${last?NOVA.time(last.time):""}</div>
+
+<div class="chatMain">
+
+<b>${NOVA.esc(u.name)}</b>
+
+<div>
+${NOVA.esc(
+last?.text||
+this.preview(last)||
+"Start a conversation"
+)}
+</div>
+
+</div>
+
+<div class="time">
+${last?NOVA.time(last.time):""}
+</div>
+
 </button>`
+
 }).join("")}
+
 </div>`
 },
+
 preview(m){
+
 if(!m)return"";
+
 if(m.kind==="image")return"Photo";
 if(m.kind==="video")return"Video";
 if(m.kind==="voice")return"Voice message";
+
 return m.text||""
 },
+
 chat(id){
-let d=modules.db,u=d.user(id),me=d.me().id,arr=d.chat(me,id);
-let key=d.chatKey(me,id),theme=NOVA.state.chatTheme[key]||"dark";
+
+document.body.classList.add("chat-open");
+
+let d=modules.db;
+let u=d.user(id);
+let me=d.me().id;
+
+let arr=d.chat(me,id);
+
+let key=d.chatKey(me,id);
+
+let theme=NOVA.state.chatTheme[key]||"dark";
+
 $("messages").innerHTML=`
+
 <div class="chat">
-<div class="chatHead row">
-<button class="circle" data-chat-back>
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+
+<div class="chatHead">
+
+<button class="circle"
+data-chat-back>
+
+<svg class="svg"
+viewBox="0 0 24 24"
+fill="none"
+stroke="currentColor"
+stroke-width="2">
+
+<path d="m15 18-6-6 6-6"/>
+
+</svg>
+
 </button>
-<button class="row" style="flex:1;text-align:left" data-chat-profile="${id}">
+
+<button class="row"
+style="flex:1;text-align:left"
+data-chat-profile="${id}">
+
 ${ui.avatar(u,"sm")}
-<div><b>${NOVA.esc(u.name)}</b><div class="handle">${u.online?'<span class="onlineDot"></span> online':'offline'}</div></div>
-</button>
-<button class="circle" data-chat-theme="${id}">
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2M8 9h.01M16 9h.01"/></svg>
-</button>
+
+<div>
+
+<b>${NOVA.esc(u.name)}</b>
+
+<div class="handle">
+
+${u.online
+?'<span class="onlineDot"></span> online'
+:"offline"}
+
 </div>
-<div id="chatMessages" class="chatMessages theme-${theme}">${arr.map(m=>this.message(m,id)).join("")}</div>
-<div class="replyBar ${NOVA.state.replyTo?"open":""}" id="replyBar">
-<div class="replyBarText">${NOVA.state.replyTo?NOVA.esc(this.replyText(NOVA.state.replyTo)):""}</div>
-<button class="replyClose" data-clear-reply>×</button>
+
 </div>
+
+</button>
+
+<button class="circle"
+data-chat-theme="${id}">
+
+<svg class="svg"
+viewBox="0 0 24 24"
+fill="none"
+stroke="currentColor"
+stroke-width="2">
+
+<circle cx="12" cy="12" r="9"/>
+<path d="M8 14s1.5 2 4 2 4-2 4-2M8 9h.01M16 9h.01"/>
+
+</svg>
+
+</button>
+
+</div>
+
+<div id="chatMessages"
+class="chatMessages theme-${theme?.type||theme}">
+
+${arr.map(m=>this.message(m,id)).join("")}
+
+</div>
+
+<div class="chatInputArea">
+
+<div class="replyBar ${NOVA.state.replyTo?"open":""}"
+id="replyBar">
+
+<div class="replyBarText">
+
+${NOVA.state.replyTo
+?NOVA.esc(this.replyText(NOVA.state.replyTo))
+:""}
+
+</div>
+
+<button class="replyClose"
+data-clear-reply>
+×
+</button>
+
+</div>
+
 <div class="chatInput">
+
 <div class="chatInputWrap">
-<div class="attachMenu" id="attachMenu">
-<button class="attachItem" data-attach="photo">Photo</button>
-<button class="attachItem" data-attach="video">Video</button>
-<button class="attachItem" data-attach="voice">Voice</button>
-</div>
-<button class="iconBtn" data-attach-open>
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+
+<div class="attachMenu"
+id="attachMenu">
+
+<button class="attachItem"
+data-attach="photo">
+Photo
 </button>
-</div>
-<input id="messageInput" placeholder="Message..." autocomplete="off">
-<button class="iconBtn" id="voiceBtn" data-record>
-<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3M9 21h6"/></svg>
+
+<button class="attachItem"
+data-attach="video">
+Video
 </button>
-<button class="iconBtn" data-send-message="${id}">
+
+<button class="attachItem"
+data-attach="voice">
+Voice
+</button>
+
+</div>
+
+<button class="iconBtn"
+data-attach-open>
+
+<svg class="svg"
+viewBox="0 0 24 24"
+fill="none"
+stroke="currentColor"
+stroke-width="2">
+
+<path d="M12 5v14M5 12h14"/>
+
+</svg>
+
+</button>
+
+</div>
+
+<input id="messageInput"
+placeholder="Message..."
+autocomplete="off">
+
+<button class="iconBtn"
+id="voiceBtn"
+data-record>
+
+<svg class="svg"
+viewBox="0 0 24 24"
+fill="none"
+stroke="currentColor"
+stroke-width="2">
+
+<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/>
+<path d="M19 11a7 7 0 0 1-14 0M12 18v3M9 21h6"/>
+
+</svg>
+
+</button>
+
+<button class="iconBtn"
+data-send-message="${id}">
+
 ${ICONS.send}
+
 </button>
+
 </div>
-</div>`;
-this.scroll();
+
+</div>
+
+</div>
+`;
+
+this.applyTheme(id);
+this.scroll()
 },
+
+/* =========================================================
+   NEW MESSAGE RENDERER
+   Text = bubble
+   Image/video = NO bubble
+   ========================================================= */
+
 message(m,id){
-let me=modules.db.me().id,isMe=m.from===me;
-let reaction=m.reaction;
-let quote=m.replyTo?this.replyObject(m.replyTo):null;
+
+let me=modules.db.me().id;
+let isMe=m.from===me;
+
+let quote=m.replyTo
+?this.replyObject(m.replyTo)
+:null;
+
 let inner="";
-if(quote)inner+=`<div class="replyQuote">${NOVA.esc(quote.text||this.preview(quote)||"Message")}</div>`;
-if(m.deleted)inner+=`<div class="bubble deleted">Message deleted</div>`;
-else if(m.kind==="image")inner+=`<img class="bubbleMedia" src="${NOVA.esc(m.data)}">`;
-else if(m.kind==="video")inner+=`<video class="bubbleMedia" src="${NOVA.esc(m.data)}" controls playsinline></video>`;
-else if(m.kind==="voice")inner+=this.voice(m);
-else inner+=`<div>${NOVA.esc(m.text||"")}</div>`;
-return`<div class="bubbleWrap ${isMe?"me":"them"}" data-message-wrap="${m.id}" data-message-id="${m.id}" data-from="${m.from}">
-<div class="bubble ${isMe?"me":"them"} ${m.deleted?"deleted":""}" data-message="${m.id}">
-${inner}
-<div class="msgTime">${NOVA.time(m.time)}</div>
-${reaction?`<div class="msgReaction">${ui.reaction(reaction)}</div>`:""}
+
+if(quote){
+
+inner+=`
+<div class="replyQuote">
+${NOVA.esc(
+quote.text||
+this.preview(quote)||
+"Message"
+)}
+</div>`
+}
+
+if(m.deleted){
+
+return`<div
+class="bubbleWrap ${isMe?"me":"them"}"
+data-message-wrap="${m.id}"
+data-message-id="${m.id}"
+data-from="${m.from}">
+
+<div class="bubble ${isMe?"me":"them"} deleted"
+data-message="${m.id}">
+
+Message deleted
+
+<div class="msgTime">
+${NOVA.time(m.time)}
 </div>
+
+</div>
+
+</div>`
+}
+
+/* PHOTO */
+if(m.kind==="image"){
+
+let myReaction=m.reactionBy?.[me]||null;
+
+return`<div
+class="bubbleWrap ${isMe?"me":"them"}"
+data-message-wrap="${m.id}"
+data-message-id="${m.id}"
+data-from="${m.from}">
+
+<div class="mediaMessage"
+data-message="${m.id}">
+
+${quote?quoteHTML(quote,this.preview.bind(this)):''}
+
+<img
+class="chatMedia"
+src="${NOVA.esc(m.data)}"
+alt="Photo"
+draggable="false">
+
+<div class="mediaTime">
+${NOVA.time(m.time)}
+</div>
+
+${myReaction
+?`<div class="msgReaction">
+${ui.reaction(myReaction)}
+</div>`
+:""}
+
+</div>
+
+</div>`
+}
+
+/* VIDEO */
+if(m.kind==="video"){
+
+let myReaction=m.reactionBy?.[me]||null;
+
+return`<div
+class="bubbleWrap ${isMe?"me":"them"}"
+data-message-wrap="${m.id}"
+data-message-id="${m.id}"
+data-from="${m.from}">
+
+<div class="mediaMessage"
+data-message="${m.id}">
+
+${quote?quoteHTML(quote,this.preview.bind(this)):''}
+
+<video
+class="chatMediaVideo"
+src="${NOVA.esc(m.data)}"
+controls
+playsinline
+preload="metadata">
+</video>
+
+<div class="mediaTime">
+${NOVA.time(m.time)}
+</div>
+
+${myReaction
+?`<div class="msgReaction">
+${ui.reaction(myReaction)}
+</div>`
+:""}
+
+</div>
+
+</div>`
+}
+
+/* VOICE / TEXT */
+if(m.kind==="voice"){
+inner+=this.voice(m)
+}else{
+inner+=`<div>${NOVA.esc(m.text||"")}</div>`
+}
+
+let myReaction=
+m.reactionBy?.[me]||null;
+
+return`<div
+class="bubbleWrap ${isMe?"me":"them"}"
+data-message-wrap="${m.id}"
+data-message-id="${m.id}"
+data-from="${m.from}">
+
+<div class="bubble ${isMe?"me":"them"}"
+data-message="${m.id}">
+
+${inner}
+
+<div class="msgTime">
+${NOVA.time(m.time)}
+</div>
+
+${myReaction
+?`<div class="msgReaction">
+${ui.reaction(myReaction)}
+</div>`
+:""}
+
+</div>
+
 </div>`
 },
+
 voice(m){
-return`<div class="voice" data-voice="${m.id}">
-<button class="voicePlay" data-voice-play="${m.id}">${ICONS.play}</button>
-<div class="wave">${Array.from({length:28},(_,i)=>`<i style="height:${6+(i%7)*3}px"></i>`).join("")}</div>
-<button class="voiceLike ${(m.voiceLiked||[]).includes(modules.db.me().id)?"active":""}" data-voice-like="${m.id}">
+
+let liked=(m.voiceLiked||[])
+.includes(modules.db.me().id);
+
+return`<div class="voice"
+data-voice="${m.id}">
+
+<button class="voicePlay"
+data-voice-play="${m.id}">
+${ICONS.play}
+</button>
+
+<div class="wave">
+
+${Array.from(
+{length:28},
+(_,i)=>`<i style="height:${6+(i%7)*3}px"></i>`
+).join("")}
+
+</div>
+
+<button class="voiceLike ${liked?"active":""}"
+data-voice-like="${m.id}">
 ${ICONS.heart}
 </button>
-<audio id="audio_${m.id}" src="${NOVA.esc(m.data)}"></audio>
+
+<audio
+id="audio_${m.id}"
+src="${NOVA.esc(m.data)}"
+preload="metadata">
+</audio>
+
 </div>`
 },
+
 replyObject(id){
-return modules.db.chat(modules.db.me().id,NOVA.state.activeChat).find(x=>x.id===id)||{}
+
+return modules.db
+.chat(
+modules.db.me().id,
+NOVA.state.activeChat
+)
+.find(x=>x.id===id)||{}
 },
+
 replyText(id){
+
 let x=this.replyObject(id);
-return x.text||this.preview(x)||"Message"
+
+return x.text||
+this.preview(x)||
+"Message"
 },
+
 scroll(){
+
 setTimeout(()=>{
-let x=$("chatMessages");if(x)x.scrollTop=x.scrollHeight
+
+let x=$("chatMessages");
+
+if(x)
+x.scrollTop=x.scrollHeight
+
 },30)
 },
+
 send(id){
-let input=$("messageInput"),text=input.value.trim();
+
+let input=$("messageInput");
+
+if(!input)return;
+
+let text=input.value.trim();
+
 if(!text)return;
-let d=modules.db,m=d.me().id;
-d.sendMessage(id,{kind:"text",text,replyTo:NOVA.state.replyTo});
-if(id!==m)d.notify("message",m,"sent you a message",{chat:id});
+
+let d=modules.db;
+let me=d.me().id;
+
+let msg=d.sendMessage(
+id,
+{
+kind:"text",
+text,
+replyTo:NOVA.state.replyTo||null
+}
+);
+
+if(!msg)
+return NOVA.toast("Message could not be sent");
+
+if(id!==me){
+
+d.notify(
+"message",
+me,
+"sent you a message",
+{chat:id}
+);
+
+}
+
 NOVA.state.replyTo=null;
+
 input.value="";
-this.chat(id)
+
+this.chat(id);
+
+NOVA.toast("Sent")
 },
+
 async media(id,type){
+
 let input=document.createElement("input");
+
 input.type="file";
-input.accept=type==="image"?"image/*":"video/*";
+input.accept=type==="image"
+?"image/*"
+:"video/*";
+
 input.onchange=async()=>{
-let f=input.files[0];if(!f)return;
+
+let f=input.files[0];
+
+if(!f)return;
+
 let data=await NOVA.image(f);
-modules.db.sendMessage(id,{kind:type,data,name:f.name});
-this.chat(id)
+
+let msg=modules.db.sendMessage(
+id,
+{
+kind:type,
+data,
+name:f.name
+}
+);
+
+if(msg){
+
+modules.db.notify(
+"message",
+modules.db.me().id,
+type==="image"
+?"sent a photo"
+:"sent a video",
+{chat:id}
+);
+
+this.chat(id);
+
+NOVA.toast(type==="image"?"Photo sent":"Video sent")
+}
+
 };
+
 input.click()
 },
+
 async record(id){
-if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)
-return NOVA.toast("Voice recording is not supported in this browser");
-if(NOVA.recording)return;
+
+if(
+!navigator.mediaDevices?.getUserMedia||
+!window.MediaRecorder
+)
+return NOVA.toast(
+"Voice recording is not supported in this browser"
+);
+
+if(NOVA.recording)
+return;
+
 try{
-let stream=await navigator.mediaDevices.getUserMedia({audio:true});
-let chunks=[],rec=new MediaRecorder(stream);
+
+let stream=
+await navigator.mediaDevices.getUserMedia({audio:true});
+
+let chunks=[];
+
+let mime="";
+
+if(MediaRecorder.isTypeSupported("audio/webm;codecs=opus"))
+mime="audio/webm;codecs=opus";
+else if(MediaRecorder.isTypeSupported("audio/webm"))
+mime="audio/webm";
+
+let rec=mime
+?new MediaRecorder(stream,{mimeType:mime})
+:new MediaRecorder(stream);
+
 NOVA.recording=rec;
+NOVA.recordingStarted=Date.now();
+
 let btn=$("voiceBtn");
-btn.classList.add("recording");
-rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+
+btn?.classList.add("recording");
+
+rec.ondataavailable=e=>{
+if(e.data.size)
+chunks.push(e.data)
+};
+
 rec.onstop=()=>{
+
 stream.getTracks().forEach(t=>t.stop());
-let blob=new Blob(chunks,{type:rec.mimeType||"audio/webm"});
+
+let duration=Math.max(
+1,
+Math.round(
+(Date.now()-NOVA.recordingStarted)/1000
+)
+);
+
+let blob=new Blob(chunks,{
+type:rec.mimeType||"audio/webm"
+});
+
 let reader=new FileReader;
+
 reader.onload=()=>{
-let m=modules.db.sendMessage(id,{kind:"voice",data:reader.result,voiceLiked:[]});
+
+let msg=modules.db.sendMessage(
+id,
+{
+kind:"voice",
+data:reader.result,
+duration,
+voiceLiked:[]
+}
+);
+
 NOVA.recording=null;
+
+if(btn)
+btn.classList.remove("recording");
+
+if(msg){
+
+modules.db.notify(
+"message",
+modules.db.me().id,
+"sent a voice message",
+{chat:id}
+);
+
 this.chat(id);
-NOVA.toast("Voice sent");
+NOVA.toast("Voice sent")
+
+}
+
 };
+
 reader.readAsDataURL(blob)
+
 };
+
 rec.start();
+
 NOVA.toast("Recording… release to send");
-}catch(e){NOVA.toast("Microphone permission is needed")}
+
+}catch(e){
+
+NOVA.recording=null;
+
+$("voiceBtn")?.classList.remove("recording");
+
+NOVA.toast("Microphone permission is needed")
+
+}
 },
+
 stopRecord(){
-if(NOVA.recording){NOVA.recording.stop();$("voiceBtn")?.classList.remove("recording")}
+
+if(NOVA.recording){
+
+try{
+NOVA.recording.stop()
+}catch(e){}
+
+$("voiceBtn")?.classList.remove("recording")
+}
 },
+
 profileInChat(id){
+
 modules.profile.showUser(id)
 },
+
 theme(id){
-let d=modules.db,key=d.chatKey(d.me().id,id);
+
+let d=modules.db;
+let key=d.chatKey(d.me().id,id);
 let cur=NOVA.state.chatTheme[key]||"dark";
+
 NOVA.modal("Chat theme",`
+
 <div class="card">
-<div class="option" data-theme-choice="dark" data-chat-id="${id}"><div class="icon">◐</div><div class="optionMain"><b>Dark</b><span>Clean NOVA dark theme</span></div></div>
-<div class="option" data-theme-choice="purple" data-chat-id="${id}"><div class="icon">✦</div><div class="optionMain"><b>Purple</b><span>Soft purple gradient</span></div></div>
-<div class="option" data-theme-choice="blue" data-chat-id="${id}"><div class="icon">○</div><div class="optionMain"><b>Ocean</b><span>Blue chat background</span></div></div>
-<div class="option" data-theme-choice="light" data-chat-id="${id}"><div class="icon">☼</div><div class="optionMain"><b>Light</b><span>Bright Messenger-style chat</span></div></div>
-<div class="option" data-theme-choice="gallery" data-chat-id="${id}"><div class="icon">□</div><div class="optionMain"><b>Gallery background</b><span>Choose a photo from Gallery</span></div></div>
+
+<div class="option"
+data-theme-choice="dark"
+data-chat-id="${id}">
+
+<div class="icon">◐</div>
+
+<div class="optionMain">
+<b>Dark</b>
+<span>Clean NOVA dark theme</span>
+</div>
+
+</div>
+
+<div class="option"
+data-theme-choice="purple"
+data-chat-id="${id}">
+
+<div class="icon">✦</div>
+
+<div class="optionMain">
+<b>Purple</b>
+<span>Soft purple gradient</span>
+</div>
+
+</div>
+
+<div class="option"
+data-theme-choice="blue"
+data-chat-id="${id}">
+
+<div class="icon">○</div>
+
+<div class="optionMain">
+<b>Ocean</b>
+<span>Blue chat background</span>
+</div>
+
+</div>
+
+<div class="option"
+data-theme-choice="light"
+data-chat-id="${id}">
+
+<div class="icon">☼</div>
+
+<div class="optionMain">
+<b>Light</b>
+<span>Bright Messenger-style chat</span>
+</div>
+
+</div>
+
+<div class="option"
+data-theme-choice="gallery"
+data-chat-id="${id}">
+
+<div class="icon">□</div>
+
+<div class="optionMain">
+<b>Gallery background</b>
+<span>Choose a photo from Gallery</span>
+</div>
+
+</div>
+
 </div>`)
 },
+
 setTheme(id,type){
-let d=modules.db,key=d.chatKey(d.me().id,id);
+
+let d=modules.db;
+let key=d.chatKey(d.me().id,id);
+
 if(type==="gallery"){
+
 let input=document.createElement("input");
-input.type="file";input.accept="image/*";
+
+input.type="file";
+input.accept="image/*";
+
 input.onchange=async()=>{
-let f=input.files[0];if(!f)return;
+
+let f=input.files[0];
+
+if(!f)return;
+
 let data=await NOVA.image(f);
-NOVA.state.chatTheme[key]={type:"gallery",bg:data};
-d.save();
-NOVA.closeModal();this.chat(id)
+
+NOVA.state.chatTheme[key]={
+type:"gallery",
+bg:data
 };
-input.click();return
+
+d.save();
+
+NOVA.closeModal();
+
+this.chat(id)
+
+};
+
+input.click();
+
+return
 }
-NOVA.state.chatTheme[key]={type};
-d.save();NOVA.closeModal();this.chat(id)
+
+NOVA.state.chatTheme[key]={
+type
+};
+
+d.save();
+
+NOVA.closeModal();
+
+this.chat(id)
+},
+
+applyTheme(id){
+
+let d=modules.db;
+let key=d.chatKey(d.me().id,id);
+let theme=NOVA.state.chatTheme[key];
+let box=$("chatMessages");
+
+if(!box)return;
+
+if(theme?.type==="gallery"){
+
+box.className="chatMessages hasBg";
+
+box.style.backgroundImage=
+`linear-gradient(#0004,#0004),url("${theme.bg}")`;
+
+}else{
+
+box.className=
+"chatMessages theme-"+(theme?.type||"dark");
+
+box.style.backgroundImage="";
+}
+
 }
 };
 
+/* Helper for reply quote in media */
+function quoteHTML(q,previewFn){
+return`
+<div class="replyQuote">
+${NOVA.esc(
+q.text||
+previewFn(q)||
+"Message"
+)}
+</div>`
+}
+
 modules.notifications={
+
 show(){
+
 let d=modules.db;
-d.notifications.forEach(n=>n.read=true);d.save();
-NOVA.modal("Notifications",d.notifications.length?`
+
+d.notifications.forEach(n=>n.read=true);
+d.save();
+
+NOVA.modal(
+"Notifications",
+
+d.notifications.length
+?`
+
 <div class="comments">
+
 ${d.notifications.map(n=>{
+
 let u=d.user(n.user);
-return`<div class="comment">${ui.avatar(u,"sm")}<div class="commentBody"><b>${NOVA.esc(u?.name||"User")}</b><div>${NOVA.esc(n.text)}</div><div class="commentTime">${NOVA.time(n.time)}</div></div></div>`
-}).join("")}</div>`:`<div class="empty"><b>No notifications</b>You are all caught up.</div>`)
+
+return`<div class="comment">
+
+${ui.avatar(u,"sm")}
+
+<div class="commentBody">
+
+<b>${NOVA.esc(
+u?.name||"User"
+)}</b>
+
+<div>
+${NOVA.esc(n.text)}
+</div>
+
+<div class="commentTime">
+${NOVA.time(n.time)}
+</div>
+
+</div>
+
+</div>`
+
+}).join("")}
+
+</div>`
+
+:`<div class="empty">
+<b>No notifications</b>
+You are all caught up.
+</div>`
+)
 }
 };
 
 modules.settings={
+
 render(){
-let d=modules.db,s=d.settings;
+
+let d=modules.db;
+let s=d.settings;
+
 $("settings").innerHTML=`
+
 <div class="title">Settings</div>
+
 <div class="card">
-<div class="option"><div class="icon">◉</div><div class="optionMain"><b>Notifications</b><span>Activity alerts</span></div><input style="width:22px" type="checkbox" ${s.notifications?"checked":""} data-setting="notifications"></div>
-<div class="option"><div class="icon">●</div><div class="optionMain"><b>Online status</b><span>Show when you're online</span></div><input style="width:22px" type="checkbox" ${s.online?"checked":""} data-setting="online"></div>
-<div class="option"><div class="icon">▶</div><div class="optionMain"><b>Autoplay</b><span>Play videos automatically</span></div><input style="width:22px" type="checkbox" ${s.autoplay?"checked":""} data-setting="autoplay"></div>
+
+<div class="option">
+
+<div class="icon">◉</div>
+
+<div class="optionMain">
+<b>Notifications</b>
+<span>Activity alerts</span>
 </div>
+
+<input style="width:22px"
+type="checkbox"
+${s.notifications?"checked":""}
+data-setting="notifications">
+
+</div>
+
+<div class="option">
+
+<div class="icon">●</div>
+
+<div class="optionMain">
+<b>Online status</b>
+<span>Show when you're online</span>
+</div>
+
+<input style="width:22px"
+type="checkbox"
+${s.online?"checked":""}
+data-setting="online">
+
+</div>
+
+<div class="option">
+
+<div class="icon">▶</div>
+
+<div class="optionMain">
+<b>Autoplay</b>
+<span>Play videos automatically</span>
+</div>
+
+<input style="width:22px"
+type="checkbox"
+${s.autoplay?"checked":""}
+data-setting="autoplay">
+
+</div>
+
+</div>
+
 <div class="card">
-<div class="option" data-action="editProfile"><div class="icon">◎</div><div class="optionMain"><b>Edit profile</b><span>Change your profile</span></div>›</div>
-<div class="option" data-action="switchAccount"><div class="icon">↻</div><div class="optionMain"><b>Switch account</b><span>Change NOVA account</span></div>›</div>
+
+<div class="option"
+data-action="editProfile">
+
+<div class="icon">◎</div>
+
+<div class="optionMain">
+<b>Edit profile</b>
+<span>Change your profile</span>
 </div>
+
+›
+
+</div>
+
+<div class="option"
+data-action="switchAccount">
+
+<div class="icon">↻</div>
+
+<div class="optionMain">
+<b>Switch account</b>
+<span>Change NOVA account</span>
+</div>
+
+›
+
+</div>
+
+</div>
+
 <div class="card">
-<div class="option" data-action="reset"><div class="icon">${ICONS.trash}</div><div class="optionMain"><b>Reset local NOVA</b><span>Delete local app data</span></div>›</div>
+
+<div class="option"
+data-action="reset">
+
+<div class="icon">
+${ICONS.trash}
 </div>
-<button class="btn full" data-action="logout">Log out</button>`
+
+<div class="optionMain">
+<b>Reset local NOVA</b>
+<span>Delete local app data</span>
+</div>
+
+›
+
+</div>
+
+</div>
+
+<button class="btn full"
+data-action="logout">
+Log out
+</button>
+`
 }
 };
 
 const auth={
+
 accounts:NOVA.get("accounts",[]),
 session:NOVA.get("session",null),
+
 async derive(password,salt){
-if(!crypto?.subtle)return NOVA.hashText(password+JSON.stringify(salt));
-let key=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveBits"]);
-let bits=await crypto.subtle.deriveBits({
-name:"PBKDF2",salt:new Uint8Array(salt),iterations:120000,hash:"SHA-256"
-},key,256);
-return[...new Uint8Array(bits)].map(x=>x.toString(16).padStart(2,"0")).join("")
+
+if(!crypto?.subtle)
+return NOVA.hashText(password+JSON.stringify(salt));
+
+let key=await crypto.subtle.importKey(
+"raw",
+new TextEncoder().encode(password),
+"PBKDF2",
+false,
+["deriveBits"]
+);
+
+let bits=await crypto.subtle.deriveBits(
+{
+name:"PBKDF2",
+salt:new Uint8Array(salt),
+iterations:120000,
+hash:"SHA-256"
 },
+key,
+256
+);
+
+return[...new Uint8Array(bits)]
+.map(x=>x.toString(16).padStart(2,"0"))
+.join("")
+},
+
 async hash(password){
-let salt=crypto.getRandomValues(new Uint8Array(16));
-return{salt:[...salt],hash:await this.derive(password,salt)}
-},
-render(mode="login"){
-document.querySelectorAll("[data-auth]").forEach(x=>x.classList.toggle("active",x.dataset.auth===mode));
-$("authBody").innerHTML=mode==="login"?`
-<form class="authForm" onsubmit="event.preventDefault();auth.login()">
-<h2>Welcome back</h2>
-<div class="authHelp">Use the same email and password. No verification code is required.</div>
-<input id="loginEmail" autocomplete="username" placeholder="Email / NOVA email">
-<input id="loginPass" type="password" autocomplete="current-password" placeholder="Password">
-<div id="authError" class="authError"></div>
-<button class="btn full">Log in</button>
-<button type="button" class="btn secondary full" onclick="auth.render('register')">Create account</button>
-</form>`
-:`
-<form class="authForm" onsubmit="event.preventDefault();auth.register()">
-<h2>Create account</h2>
-<div class="authHelp">You can use an invented email-like address. NOVA does not send verification codes.</div>
-<input id="regName" placeholder="Your name">
-<input id="regHandle" placeholder="Username (optional)">
-<input id="regEmail" autocomplete="username" placeholder="Email e.g. carlos@nova.local">
-<input id="regPass" type="password" autocomplete="new-password" placeholder="Password">
-<input id="regPass2" type="password" autocomplete="new-password" placeholder="Repeat password">
-<div id="authError" class="authError"></div>
-<button class="btn full">Create account</button>
-<button type="button" class="btn secondary full" onclick="auth.render('login')">I already have an account</button>
-</form>`
-},
-async register(){
-let n=$("regName").value.trim(),e=$("regEmail").value.trim().toLowerCase(),
-p=$("regPass").value,p2=$("regPass2").value,h=$("regHandle").value.trim();
-$("authError").textContent="";
-if(n.length<2)return $("authError").textContent="Enter your name.";
-if(!e.includes("@"))return $("authError").textContent="Enter an email-like address.";
-if(p.length<6)return $("authError").textContent="Password must be at least 6 characters.";
-if(p!==p2)return $("authError").textContent="Passwords do not match.";
-if(this.accounts.some(x=>x.email===e))return $("authError").textContent="Account already exists.";
-if(!h)h="@"+n.toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,14)+Math.floor(Math.random()*90+10);
-if(!h.startsWith("@"))h="@"+h;
-let id=this.accounts.length===0?"me":NOVA.uid("user");
-let sec=await this.hash(p);
-let old=modules.db.user(id);
-if(old){
-old.name=n;old.handle=h;old.online=true
-}else{
-modules.db.users.push({id,name:n,handle:h,bio:"New on NOVA 🚀",avatar:"",
-followers:0,following:0,followingUsers:[],online:true})
+
+let salt=crypto.getRandomValues(
+new Uint8Array(16)
+);
+
+return{
+salt:[...salt],
+hash:await this.derive(password,salt)
 }
-this.accounts.push({id,email:e,passwordHash:sec.hash,salt:sec.salt,userId:id,created:Date.now()});
-NOVA.set("accounts",this.accounts);
-this.session={userId:id,email:e};
-NOVA.set("session",this.session);
-modules.db.save();
-this.hide();NOVA.go("home");NOVA.toast("Account created 🚀")
 },
-async login(){
-let e=$("loginEmail").value.trim().toLowerCase(),p=$("loginPass").value;
+
+render(mode="login"){
+
+document.querySelectorAll("[data-auth]")
+.forEach(x=>
+x.classList.toggle(
+"active",
+x.dataset.auth===mode
+)
+);
+
+$("authBody").innerHTML=
+mode==="login"
+?`
+
+<form class="authForm"
+onsubmit="event.preventDefault();auth.login()">
+
+<h2>Welcome back</h2>
+
+<div class="authHelp">
+Use the same email and password.
+No verification code is required.
+</div>
+
+<input id="loginEmail"
+autocomplete="username"
+placeholder="Email / NOVA email">
+
+<input id="loginPass"
+type="password"
+autocomplete="current-password"
+placeholder="Password">
+
+<div id="authError"
+class="authError"></div>
+
+<button class="btn full">
+Log in
+</button>
+
+<button type="button"
+class="btn secondary full"
+onclick="auth.render('register')">
+Create account
+</button>
+
+</form>`
+
+:`
+
+<form class="authForm"
+onsubmit="event.preventDefault();auth.register()">
+
+<h2>Create account</h2>
+
+<div class="authHelp">
+You can use an invented email-like address.
+NOVA does not send verification codes.
+</div>
+
+<input id="regName"
+placeholder="Your name">
+
+<input id="regHandle"
+placeholder="Username (optional)">
+
+<input id="regEmail"
+autocomplete="username"
+placeholder="Email e.g. carlos@nova.local">
+
+<input id="regPass"
+type="password"
+autocomplete="new-password"
+placeholder="Password">
+
+<input id="regPass2"
+type="password"
+autocomplete="new-password"
+placeholder="Repeat password">
+
+<div id="authError"
+class="authError"></div>
+
+<button class="btn full">
+Create account
+</button>
+
+<button type="button"
+class="btn secondary full"
+onclick="auth.render('login')">
+I already have an account
+</button>
+
+</form>`
+},
+
+async register(){
+
+let n=$("regName").value.trim();
+let e=$("regEmail").value.trim().toLowerCase();
+let p=$("regPass").value;
+let p2=$("regPass2").value;
+let h=$("regHandle").value.trim();
+
 $("authError").textContent="";
-let a=this.accounts.find(x=>x.email===e);
-if(!a)return $("authError").textContent="Account not found.";
-let h=await this.derive(p,a.salt);
-if(h!==a.passwordHash)return $("authError").textContent="Wrong password.";
-this.session={userId:a.userId,email:a.email};
+
+if(n.length<2)
+return $("authError").textContent="Enter your name.";
+
+if(!e.includes("@"))
+return $("authError").textContent=
+"Enter an email-like address.";
+
+if(p.length<6)
+return $("authError").textContent=
+"Password must be at least 6 characters.";
+
+if(p!==p2)
+return $("authError").textContent=
+"Passwords do not match.";
+
+if(this.accounts.some(x=>x.email===e))
+return $("authError").textContent=
+"Account already exists.";
+
+if(!h)
+h="@"+
+n.toLowerCase()
+.replace(/[^a-z0-9]/g,"")
+.slice(0,14)+
+Math.floor(Math.random()*90+10);
+
+if(!h.startsWith("@"))
+h="@"+h;
+
+let id=this.accounts.length===0
+?"me"
+:NOVA.uid("user");
+
+let sec=await this.hash(p);
+
+let old=modules.db.user(id);
+
+if(old){
+
+old.name=n;
+old.handle=h;
+old.online=true
+
+}else{
+
+modules.db.users.push({
+id,
+name:n,
+handle:h,
+bio:"New on NOVA 🚀",
+avatar:"",
+followers:0,
+following:0,
+followingUsers:[],
+online:true
+})
+
+}
+
+this.accounts.push({
+id,
+email:e,
+passwordHash:sec.hash,
+salt:sec.salt,
+userId:id,
+created:Date.now()
+});
+
+NOVA.set("accounts",this.accounts);
+
+this.session={
+userId:id,
+email:e
+};
+
 NOVA.set("session",this.session);
-let u=modules.db.user(a.userId);if(u)u.online=true;
+
 modules.db.save();
-this.hide();NOVA.go("home");NOVA.toast("Welcome back ✨")
+
+this.hide();
+
+NOVA.go("home");
+
+NOVA.toast("Account created 🚀")
 },
-show(){this.render("login");$("auth").style.display="block"},
-hide(){$("auth").style.display="none"},
+
+async login(){
+
+let e=$("loginEmail").value.trim().toLowerCase();
+let p=$("loginPass").value;
+
+$("authError").textContent="";
+
+let a=this.accounts.find(x=>x.email===e);
+
+if(!a)
+return $("authError").textContent=
+"Account not found.";
+
+let h=await this.derive(
+p,
+a.salt
+);
+
+if(h!==a.passwordHash)
+return $("authError").textContent=
+"Wrong password.";
+
+this.session={
+userId:a.userId,
+email:a.email
+};
+
+NOVA.set("session",this.session);
+
+let u=modules.db.user(a.userId);
+
+if(u)
+u.online=true;
+
+modules.db.save();
+
+this.hide();
+
+NOVA.go("home");
+
+NOVA.toast("Welcome back ✨")
+},
+
+show(){
+this.render("login");
+$("auth").style.display="block"
+},
+
+hide(){
+$("auth").style.display="none"
+},
+
 logout(){
-let u=modules.db.me();if(u){u.online=false;modules.db.save()}
-this.session=null;NOVA.set("session",null);this.show()
+
+let u=modules.db.me();
+
+if(u){
+u.online=false;
+modules.db.save()
+}
+
+this.session=null;
+
+NOVA.set("session",null);
+
+this.show()
 },
+
 switch(){
 this.show()
 }
 };
 
 NOVA.render=function(s){
-if(s==="home")modules.home.render();
-if(s==="explore")modules.explore.render();
-if(s==="create")modules.create.render();
-if(s==="messages")modules.messages.render();
-if(s==="profile")modules.profile.render();
-if(s==="settings")modules.settings.render()
+
+if(s==="home")
+modules.home.render();
+
+if(s==="explore")
+modules.explore.render();
+
+if(s==="create")
+modules.create.render();
+
+if(s==="messages")
+modules.messages.render();
+
+if(s==="profile")
+modules.profile.render();
+
+if(s==="settings")
+modules.settings.render()
 };
 
 /* LONG PRESS MESSAGE */
+
 function openLongPress(id){
-let arr=modules.db.chat(modules.db.me().id,NOVA.state.activeChat);
-let m=arr.find(x=>x.id===id);if(!m)return;
+
+let arr=modules.db.chat(
+modules.db.me().id,
+NOVA.state.activeChat
+);
+
+let m=arr.find(x=>x.id===id);
+
+if(!m)return;
+
 let isMe=m.from===modules.db.me().id;
-let types=["heart","laugh","wow","fire","like","sad","angry"];
+
+let types=[
+"heart","laugh","wow",
+"fire","like","sad","angry"
+];
+
 $("longMenu").innerHTML=`
+
 <div class="reactRow">
-${types.map(x=>`<button class="reactChoice" data-long-react="${x}" data-message-id="${id}">${ui.reaction(x)}</button>`).join("")}
+
+${types.map(x=>
+`<button
+class="reactChoice"
+data-long-react="${x}"
+data-message-id="${id}">
+${ui.reaction(x)}
+</button>`
+).join("")}
+
 </div>
-<div class="longPreview">${m.deleted?"Message deleted":m.kind==="text"?NOVA.esc(m.text):m.kind==="image"?"Photo":m.kind==="video"?"Video":"Voice message"}</div>
+
+<div class="longPreview">
+
+${
+m.deleted
+?"Message deleted"
+:m.kind==="text"
+?NOVA.esc(m.text)
+:m.kind==="image"
+?"Photo"
+:m.kind==="video"
+?"Video"
+:"Voice message"
+}
+
+</div>
+
 <div class="longActions">
-<button class="longAction" data-long-action="reply" data-message-id="${id}">${ICONS.reply}<span>Reply</span></button>
-${m.kind==="voice"?`<button class="longAction" data-long-action="play" data-message-id="${id}">${ICONS.play}<span>Listen</span></button>`:""}
-${isMe&&!m.deleted?`<button class="longAction" data-long-action="delete" data-message-id="${id}">${ICONS.trash}<span>Delete message</span></button>`:""}
-<button class="longAction" data-long-action="close">×<span>Cancel</span></button>
-</div>`;
+
+<button class="longAction"
+data-long-action="reply"
+data-message-id="${id}">
+${ICONS.reply}
+<span>Reply</span>
+</button>
+
+${m.kind==="voice"
+?`<button class="longAction"
+data-long-action="play"
+data-message-id="${id}">
+${ICONS.play}
+<span>Listen</span>
+</button>`
+:""}
+
+${isMe&&!m.deleted
+?`<button class="longAction"
+data-long-action="delete"
+data-message-id="${id}">
+${ICONS.trash}
+<span>Delete message</span>
+</button>`
+:""}
+
+<button class="longAction"
+data-long-action="close">
+×
+<span>Cancel</span>
+</button>
+
+</div>
+`;
+
 $("longPressShade").classList.add("open")
 }
 
-function closeLong(){ $("longPressShade").classList.remove("open") }
+function closeLong(){
+$("longPressShade").classList.remove("open")
+}
 
 function applyMessageReaction(id,type){
-let arr=modules.db.chat(modules.db.me().id,NOVA.state.activeChat);
-let m=arr.find(x=>x.id===id),me=modules.db.me().id;
+
+let arr=modules.db.chat(
+modules.db.me().id,
+NOVA.state.activeChat
+);
+
+let m=arr.find(x=>x.id===id);
+
+let me=modules.db.me().id;
+
 if(!m)return;
-m.reaction=m.reaction===type?null:type;
-if(m.from!==me&&m.reaction)modules.db.notify("message_reaction",me,"reacted to your message",{chat:NOVA.state.activeChat,messageId:id});
-modules.db.save();closeLong();modules.messages.chat(NOVA.state.activeChat)
+
+m.reactionBy??={};
+
+let current=m.reactionBy[me]||null;
+
+if(current===type){
+
+delete m.reactionBy[me]
+
+}else{
+
+m.reactionBy[me]=type;
+
+if(m.from!==me){
+
+modules.db.notify(
+"message_reaction",
+me,
+"reacted to your message",
+{
+chat:NOVA.state.activeChat,
+messageId:id
+}
+);
+
+}
+}
+
+modules.db.save();
+
+closeLong();
+
+modules.messages.chat(
+NOVA.state.activeChat
+)
 }
 
 function deleteMessage(id){
-let arr=modules.db.chat(modules.db.me().id,NOVA.state.activeChat);
+
+let arr=modules.db.chat(
+modules.db.me().id,
+NOVA.state.activeChat
+);
+
 let m=arr.find(x=>x.id===id);
-if(m&&m.from===modules.db.me().id){
-m.deleted=true;m.text="";m.data="";
-modules.db.save();closeLong();modules.messages.chat(NOVA.state.activeChat);NOVA.toast("Message deleted")
+
+if(
+m&&
+m.from===modules.db.me().id
+){
+
+m.deleted=true;
+m.text="";
+m.data="";
+m.reactionBy={};
+
+modules.db.save();
+
+closeLong();
+
+modules.messages.chat(
+NOVA.state.activeChat
+);
+
+NOVA.toast("Message deleted")
 }
 }
 
 /* EVENTS */
+
 document.addEventListener("click",e=>{
+
 let go=e.target.closest("[data-go]");
-if(go){NOVA.go(go.dataset.go);return}
+
+if(go){
+
+NOVA.go(go.dataset.go);
+return
+}
 
 let authTab=e.target.closest("[data-auth]");
-if(authTab){auth.render(authTab.dataset.auth);return}
+
+if(authTab){
+
+auth.render(authTab.dataset.auth);
+return
+}
 
 let act=e.target.closest("[data-action]");
+
 if(act){
+
 let x=act.dataset.action;
-if(x==="create"||x==="createPost")modules.posts.create();
-if(x==="createStory")modules.stories.create();
-if(x==="closeModal")NOVA.closeModal();
-if(x==="editProfile")modules.profile.edit();
-if(x==="logout")auth.logout();
-if(x==="switchAccount")auth.switch();
+
+if(x==="create"||x==="createPost")
+modules.posts.create();
+
+if(x==="createStory")
+modules.stories.create();
+
+if(x==="closeModal")
+NOVA.closeModal();
+
+if(x==="editProfile")
+modules.profile.edit();
+
+if(x==="logout")
+auth.logout();
+
+if(x==="switchAccount")
+auth.switch();
+
 if(x==="reset"){
-if(confirm("Delete all NOVA local data?")){localStorage.clear();location.reload()}
+
+if(confirm("Delete all NOVA local data?")){
+localStorage.clear();
+location.reload()
 }
-if(x==="notifications")modules.notifications.show();
-if(x==="search"){NOVA.go("explore");setTimeout(()=>$("exploreSearch")?.focus(),60)}
+
+}
+
+if(x==="notifications")
+modules.notifications.show();
+
+if(x==="search"){
+
+NOVA.go("explore");
+
+setTimeout(
+()=>$("exploreSearch")?.focus(),
+60
+)
+
+}
+
 return
 }
 
 let sc=e.target.closest("[data-story-create]");
-if(sc){modules.stories.create();return}
+
+if(sc){
+
+modules.stories.create();
+return
+}
 
 let su=e.target.closest("[data-story-user]");
-if(su){modules.stories.openUser(su.dataset.storyUser);return}
+
+if(su){
+
+modules.stories.openUser(
+su.dataset.storyUser
+);
+
+return
+}
 
 let sr=e.target.closest("[data-story-react]");
-if(sr){modules.stories.react(sr.dataset.storyReact);return}
 
-if(e.target.closest("[data-story-reply]")){modules.stories.reply();return}
-if(e.target.closest("[data-story-close]")){modules.stories.close();return}
-if(e.target.closest("[data-story-next]")){modules.stories.next();return}
-if(e.target.closest("[data-story-prev]")){modules.stories.prev();return}
+if(sr){
+
+modules.stories.react(
+sr.dataset.storyReact
+);
+
+return
+}
+
+if(e.target.closest("[data-story-reply]")){
+
+modules.stories.reply();
+return
+}
+
+if(e.target.closest("[data-story-close]")){
+
+modules.stories.close();
+return
+}
+
+if(e.target.closest("[data-story-next]")){
+
+modules.stories.next();
+return
+}
+
+if(e.target.closest("[data-story-prev]")){
+
+modules.stories.prev();
+return
+}
 
 let pf=e.target.closest("[data-profile-tab]");
+
 if(pf){
-let owner=pf.dataset.profileOwner||modules.db.me().id;
-NOVA.state.profileTab=pf.dataset.profileTab;
-modules.profile.renderUser(owner,owner===modules.db.me().id);
+
+let owner=
+pf.dataset.profileOwner||
+modules.db.me().id;
+
+NOVA.state.profileTab=
+pf.dataset.profileTab;
+
+modules.profile.renderUser(
+owner,
+owner===modules.db.me().id
+);
+
 return
 }
 
 let fl=e.target.closest("[data-follow]");
+
 if(fl){
+
 let id=fl.dataset.follow;
-modules.db.following(id)?modules.db.unfollow(id):modules.db.follow(id);
-NOVA.render(NOVA.state.screen);return
+
+modules.db.following(id)
+?modules.db.unfollow(id)
+:modules.db.follow(id);
+
+NOVA.render(NOVA.state.screen);
+
+return
 }
 
 let user=e.target.closest("[data-user]");
-if(user&&!e.target.closest("[data-follow]")){
-modules.profile.showUser(user.dataset.user);return
+
+if(
+user&&
+!e.target.closest("[data-follow]")
+){
+
+modules.profile.showUser(
+user.dataset.user
+);
+
+return
 }
 
 let po=e.target.closest("[data-post]");
+
 if(po){
-let id=po.dataset.id,x=po.dataset.post;
+
+let id=po.dataset.id;
+let x=po.dataset.post;
+
 if(x==="like")modules.posts.like(id);
 if(x==="comments")modules.posts.comments(id);
 if(x==="reaction")modules.posts.reaction(id);
@@ -1529,252 +4542,726 @@ if(x==="repost")modules.posts.repost(id);
 if(x==="save")modules.posts.save(id);
 if(x==="share")modules.posts.share(id);
 if(x==="menu")modules.posts.menu(id);
+
 return
 }
 
 let rr=e.target.closest("[data-reaction]");
-if(rr){modules.posts.react(rr.dataset.id,rr.dataset.reaction);return}
 
-let cm=e.target.closest("[data-comment]");
-if(cm){modules.posts.addComment(cm.dataset.comment);return}
+if(rr){
 
-let menu=e.target.closest("[data-menu]");
-if(menu){
-if(menu.dataset.menu==="stats"){
-let p=modules.db.post(menu.dataset.id);
-NOVA.modal("Statistics",`<div class="empty"><b>${p.likes.length}</b> Likes<br><br><b>${p.comments.length}</b> Comments<br><br><b>${p.reposts||0}</b> Reposts</div>`)
-}
-if(menu.dataset.menu==="delete"){
-if(confirm("Delete this post?")){
-modules.db.posts=modules.db.posts.filter(x=>x.id!==menu.dataset.id);
-modules.db.save();NOVA.closeModal();NOVA.render(NOVA.state.screen)
-}
-}
+modules.posts.react(
+rr.dataset.id,
+rr.dataset.reaction
+);
+
 return
 }
 
-if(e.target.closest("[data-profile-save]")){modules.profile.save();return}
-if(e.target.closest("[data-create-submit]")){modules.posts.submit();return}
-if(e.target.closest("[data-story-submit]")){modules.stories.submit();return}
+let cm=e.target.closest("[data-comment]");
+
+if(cm){
+
+modules.posts.addComment(
+cm.dataset.comment
+);
+
+return
+}
+
+let menu=e.target.closest("[data-menu]");
+
+if(menu){
+
+if(menu.dataset.menu==="stats"){
+
+let p=modules.db.post(
+menu.dataset.id
+);
+
+NOVA.modal(
+"Statistics",
+`<div class="empty">
+<b>${p.likes.length}</b> Likes
+<br><br>
+<b>${p.comments.length}</b> Comments
+<br><br>
+<b>${p.reposts||0}</b> Reposts
+</div>`
+)
+
+}
+
+if(menu.dataset.menu==="delete"){
+
+if(confirm("Delete this post?")){
+
+modules.db.posts=
+modules.db.posts.filter(
+x=>x.id!==menu.dataset.id
+);
+
+modules.db.save();
+
+NOVA.closeModal();
+
+NOVA.render(
+NOVA.state.screen
+)
+
+}
+
+}
+
+return
+}
+
+if(e.target.closest("[data-profile-save]")){
+
+modules.profile.save();
+return
+}
+
+if(e.target.closest("[data-create-submit]")){
+
+modules.posts.submit();
+return
+}
+
+if(e.target.closest("[data-story-submit]")){
+
+modules.stories.submit();
+return
+}
 
 let chat=e.target.closest("[data-chat]");
-if(chat){NOVA.state.activeChat=chat.dataset.chat;NOVA.state.chatProfile=null;NOVA.state.replyTo=null;NOVA.go("messages");return}
+
+if(chat){
+
+NOVA.state.activeChat=
+chat.dataset.chat;
+
+NOVA.state.chatProfile=null;
+NOVA.state.replyTo=null;
+
+NOVA.go("messages");
+
+return
+}
 
 if(e.target.closest("[data-chat-back]")){
-NOVA.state.activeChat=null;NOVA.state.chatProfile=null;NOVA.state.replyTo=null;NOVA.go("messages");return
+
+NOVA.state.activeChat=null;
+NOVA.state.chatProfile=null;
+NOVA.state.replyTo=null;
+
+document.body.classList.remove("chat-open");
+
+NOVA.go("messages");
+
+return
 }
 
 let cp=e.target.closest("[data-chat-profile]");
-if(cp){modules.profile.showUser(cp.dataset.chatProfile);return}
+
+if(cp){
+
+modules.profile.showUser(
+cp.dataset.chatProfile
+);
+
+return
+}
 
 let sp=e.target.closest("[data-start-chat]");
+
 if(sp){
-NOVA.state.activeChat=sp.dataset.startChat;
+
+NOVA.state.activeChat=
+sp.dataset.startChat;
+
 NOVA.state.chatProfile=null;
-NOVA.go("messages");return
+
+NOVA.go("messages");
+
+return
 }
 
 let sm=e.target.closest("[data-send-message]");
-if(sm){modules.messages.send(sm.dataset.sendMessage);return}
+
+if(sm){
+
+modules.messages.send(
+sm.dataset.sendMessage
+);
+
+return
+}
 
 if(e.target.closest("[data-attach-open]")){
-$("attachMenu")?.classList.toggle("open");return
+
+$("attachMenu")?.classList.toggle("open");
+
+return
 }
 
 let at=e.target.closest("[data-attach]");
+
 if(at){
+
 $("attachMenu")?.classList.remove("open");
+
 let id=NOVA.state.activeChat;
-if(at.dataset.attach==="photo")modules.messages.media(id,"image");
-if(at.dataset.attach==="video")modules.messages.media(id,"video");
-if(at.dataset.attach==="voice")modules.messages.record(id);
+
+if(at.dataset.attach==="photo")
+modules.messages.media(id,"image");
+
+if(at.dataset.attach==="video")
+modules.messages.media(id,"video");
+
+if(at.dataset.attach==="voice")
+modules.messages.record(id);
+
 return
 }
 
 let th=e.target.closest("[data-chat-theme]");
-if(th){modules.messages.theme(th.dataset.chatTheme);return}
+
+if(th){
+
+modules.messages.theme(
+th.dataset.chatTheme
+);
+
+return
+}
 
 let tc=e.target.closest("[data-theme-choice]");
-if(tc){modules.messages.setTheme(tc.dataset.chatId,tc.dataset.themeChoice);return}
+
+if(tc){
+
+modules.messages.setTheme(
+tc.dataset.chatId,
+tc.dataset.themeChoice
+);
+
+return
+}
 
 if(e.target.closest("[data-clear-reply]")){
+
 NOVA.state.replyTo=null;
-if(NOVA.state.activeChat)modules.messages.chat(NOVA.state.activeChat);
+
+if(NOVA.state.activeChat)
+modules.messages.chat(
+NOVA.state.activeChat
+);
+
 return
 }
 
 let vp=e.target.closest("[data-voice-play]");
+
 if(vp){
-let audio=$("audio_"+vp.dataset.voicePlay);
+
+let audio=$(
+"audio_"+vp.dataset.voicePlay
+);
+
 if(!audio)return;
+
 if(audio.paused){
-audio.play();vp.innerHTML=ICONS.pause
+
+document.querySelectorAll("audio").forEach(a=>{
+if(a!==audio)a.pause()
+});
+
+audio.play().catch(()=>{});
+
+vp.innerHTML=ICONS.pause
+
 }else{
-audio.pause();vp.innerHTML=ICONS.play
+
+audio.pause();
+
+vp.innerHTML=ICONS.play
+
 }
-audio.onended=()=>vp.innerHTML=ICONS.play;
+
+audio.onended=()=>{
+vp.innerHTML=ICONS.play
+};
+
 return
 }
 
 let vl=e.target.closest("[data-voice-like]");
+
 if(vl){
-let arr=modules.db.chat(modules.db.me().id,NOVA.state.activeChat);
-let m=arr.find(x=>x.id===vl.dataset.voiceLike);
+
+let arr=modules.db.chat(
+modules.db.me().id,
+NOVA.state.activeChat
+);
+
+let m=arr.find(
+x=>x.id===vl.dataset.voiceLike
+);
+
+if(!m)return;
+
 let me=modules.db.me().id;
+
 m.voiceLiked??=[];
-m.voiceLiked.includes(me)?m.voiceLiked=m.voiceLiked.filter(x=>x!==me):m.voiceLiked.push(me);
-modules.db.save();modules.messages.chat(NOVA.state.activeChat);return
+
+m.voiceLiked.includes(me)
+?m.voiceLiked=m.voiceLiked.filter(x=>x!==me)
+:m.voiceLiked.push(me);
+
+modules.db.save();
+
+modules.messages.chat(
+NOVA.state.activeChat
+);
+
+return
 }
 
 let lr=e.target.closest("[data-long-react]");
-if(lr){applyMessageReaction(lr.dataset.messageId,lr.dataset.longReact);return}
+
+if(lr){
+
+applyMessageReaction(
+lr.dataset.messageId,
+lr.dataset.longReact
+);
+
+return
+}
 
 let la=e.target.closest("[data-long-action]");
+
 if(la){
-let id=la.dataset.messageId,x=la.dataset.longAction;
-if(x==="close")closeLong();
-if(x==="delete")deleteMessage(id);
+
+let id=la.dataset.messageId;
+let x=la.dataset.longAction;
+
+if(x==="close")
+closeLong();
+
+if(x==="delete")
+deleteMessage(id);
+
 if(x==="reply"){
-NOVA.state.replyTo=id;closeLong();modules.messages.chat(NOVA.state.activeChat);
-setTimeout(()=>$("messageInput")?.focus(),40)
+
+NOVA.state.replyTo=id;
+
+closeLong();
+
+modules.messages.chat(
+NOVA.state.activeChat
+);
+
+setTimeout(
+()=>$("messageInput")?.focus(),
+40
+)
+
 }
+
 if(x==="play"){
-let a=$("audio_"+id);a?.play()
+
+let a=$("audio_"+id);
+
+if(a)
+a.play().catch(()=>{})
+
 }
+
 return
 }
 
 let setting=e.target.closest("[data-setting]");
+
 if(setting){
-modules.db.settings[setting.dataset.setting]=setting.checked;
-modules.db.save();return
+
+modules.db.settings[
+setting.dataset.setting
+]=setting.checked;
+
+modules.db.save();
+
+return
 }
+
 });
 
 $("modalBg").addEventListener("click",e=>{
-if(e.target===$("modalBg"))NOVA.closeModal()
+
+if(e.target===$("modalBg"))
+NOVA.closeModal()
+
 });
+
 $("longPressShade").addEventListener("click",e=>{
-if(e.target===$("longPressShade"))closeLong()
+
+if(e.target===$("longPressShade"))
+closeLong()
+
 });
 
 /* KEYBOARD */
+
 document.addEventListener("keydown",e=>{
+
 if(e.key==="Escape"){
-NOVA.closeModal();modules.stories.close();closeLong()
+
+NOVA.closeModal();
+modules.stories.close();
+closeLong()
+
 }
-if(e.key==="Enter"&&!e.shiftKey&&e.target.id==="commentInput"){
-e.preventDefault();modules.posts.addComment(e.target.closest(".chatInput")?.querySelector("[data-comment]")?.dataset.comment)
-}
-if(e.key==="Enter"&&!e.shiftKey&&e.target.id==="messageInput"){
+
+if(
+e.key==="Enter"&&
+!e.shiftKey&&
+e.target.id==="commentInput"
+){
+
 e.preventDefault();
-if(NOVA.state.activeChat)modules.messages.send(NOVA.state.activeChat)
+
+modules.posts.addComment(
+e.target
+.closest(".chatInput")
+?.querySelector("[data-comment]")
+?.dataset.comment
+)
+
 }
-if(e.key==="Enter"&&!e.shiftKey&&e.target.id==="storyReplyInput"){
-e.preventDefault();modules.stories.reply()
+
+if(
+e.key==="Enter"&&
+!e.shiftKey&&
+e.target.id==="messageInput"
+){
+
+e.preventDefault();
+
+if(NOVA.state.activeChat)
+modules.messages.send(
+NOVA.state.activeChat
+)
+
 }
+
+if(
+e.key==="Enter"&&
+!e.shiftKey&&
+e.target.id==="storyReplyInput"
+){
+
+e.preventDefault();
+
+modules.stories.reply()
+
+}
+
 });
 
 /* LONG PRESS + SWIPE REPLY */
+
 document.addEventListener("pointerdown",e=>{
+
 let b=e.target.closest("[data-message]");
+
 if(!b||e.button!==0)return;
+
 let id=b.dataset.message;
+
 let startX=e.clientX;
 let moved=false;
+
 NOVA.state.pressTimer=setTimeout(()=>{
-if(!moved)openLongPress(id)
+
+if(!moved)
+openLongPress(id)
+
 },520);
 
 let move=ev=>{
+
 if(Math.abs(ev.clientX-startX)>35){
+
 moved=true;
-clearTimeout(NOVA.state.pressTimer);
-let dx=Math.max(0,Math.min(80,ev.clientX-startX));
-if(dx>8)b.style.transform=`translateX(${dx}px)`
+
+clearTimeout(
+NOVA.state.pressTimer
+);
+
+let dx=Math.max(
+0,
+Math.min(80,ev.clientX-startX)
+);
+
+if(dx>8)
+b.style.transform=
+`translateX(${dx}px)`;
+
+if(dx>=60){
+
+NOVA.state.replyTo=id;
+
+clearTimeout(
+NOVA.state.pressTimer
+);
+
 }
+
+}
+
 };
+
 let up=()=>{
-clearTimeout(NOVA.state.pressTimer);
+
+clearTimeout(
+NOVA.state.pressTimer
+);
+
+let dx=e.clientX-startX;
+
 b.style.transform="";
-document.removeEventListener("pointermove",move);
-document.removeEventListener("pointerup",up);
+
+document.removeEventListener(
+"pointermove",
+move
+);
+
+document.removeEventListener(
+"pointerup",
+up
+);
+
+if(dx>=60){
+
+modules.messages.chat(
+NOVA.state.activeChat
+);
+
+setTimeout(
+()=>$("messageInput")?.focus(),
+40
+)
+
+}
+
 };
-document.addEventListener("pointermove",move,{passive:true});
-document.addEventListener("pointerup",up,{once:true});
+
+document.addEventListener(
+"pointermove",
+move,
+{passive:true}
+);
+
+document.addEventListener(
+"pointerup",
+up,
+{once:true}
+);
+
 });
 
 /* VOICE PRESS */
+
 document.addEventListener("pointerdown",e=>{
+
 let btn=e.target.closest("[data-record]");
+
 if(!btn)return;
+
 if(!NOVA.state.activeChat)return;
+
 NOVA.state.voicePress=true;
+
 NOVA.state.voiceTimer=setTimeout(()=>{
-if(NOVA.state.voicePress)modules.messages.record(NOVA.state.activeChat)
+
+if(NOVA.state.voicePress)
+modules.messages.record(
+NOVA.state.activeChat
+)
+
 },280)
+
 });
+
 document.addEventListener("pointerup",e=>{
+
 if(!NOVA.state.voicePress)return;
+
 NOVA.state.voicePress=false;
-clearTimeout(NOVA.state.voiceTimer);
-if(NOVA.recording)modules.messages.stopRecord()
+
+clearTimeout(
+NOVA.state.voiceTimer
+);
+
+if(NOVA.recording)
+modules.messages.stopRecord()
+
 });
 
-/* TOUCH STORY */
+/* STORY SWIPE */
+
 let storyTouchStart=0;
-$("viewer").addEventListener("touchstart",e=>{
-storyTouchStart=e.changedTouches[0].clientX
-},{passive:true});
-$("viewer").addEventListener("touchend",e=>{
-let dx=e.changedTouches[0].clientX-storyTouchStart;
+
+$("viewer").addEventListener(
+"touchstart",
+e=>{
+storyTouchStart=
+e.changedTouches[0].clientX
+},
+{passive:true}
+);
+
+$("viewer").addEventListener(
+"touchend",
+e=>{
+
+let dx=
+e.changedTouches[0].clientX-
+storyTouchStart;
+
 if(Math.abs(dx)>80){
-if(dx<0)modules.stories.next();
-else modules.stories.prev()
+
+if(dx<0)
+modules.stories.next();
+else
+modules.stories.prev()
+
+}
+
+},
+{passive:true}
+);
+
+/* VISIBILITY */
+
+document.addEventListener("visibilitychange",()=>{
+
+if(document.hidden){
+
+let v=$("storyVideo");
+
+if(v)
+v.pause();
+
+document.querySelectorAll("audio")
+.forEach(a=>a.pause())
+
 }
 });
-
-/* CHAT THEME CUSTOM BACKGROUND */
-const originalChat=modules.messages.chat.bind(modules.messages);
-const oldChat=modules.messages.chat;
-modules.messages.chat=function(id){
-oldChat(id);
-let d=modules.db,key=d.chatKey(d.me().id,id),theme=NOVA.state.chatTheme[key];
-let box=$("chatMessages");
-if(theme?.type==="gallery"){
-box.className="chatMessages hasBg";
-box.style.backgroundImage=`linear-gradient(#0004,#0004),url("${theme.bg}")`;
-}else{
-box.style.backgroundImage="";
-}
-this.scroll()
-};
 
 /* APP BOOT */
+
 modules.db.init();
 
-if(auth.session&&modules.db.user(auth.session.userId)){
-let u=modules.db.user(auth.session.userId);
+if(
+auth.session&&
+modules.db.user(auth.session.userId)
+){
+
+let u=modules.db.user(
+auth.session.userId
+);
+
 u.online=true;
+
 modules.db.save();
+
 auth.hide();
+
 NOVA.go("home")
+
 }else{
+
 auth.show();
 auth.render("login")
+
 }
 
-/* KEEP ALL REGISTERED LOCAL USERS AVAILABLE AS CHAT CONTACTS */
+/* KEEP LOCAL USERS ONLINE */
+
 setInterval(()=>{
+
 let me=modules.db.me();
+
 if(me){
+
 me.online=true;
+
 modules.db.users.forEach(u=>{
-if(u.id!==me.id&&u.online===undefined)u.online=true
+
+if(
+u.id!==me.id&&
+u.online===undefined
+)
+u.online=true
+
 });
+
+modules.db.save()
+
+}
+
+},15000);
+
+/* STOP MEDIA */
+
+window.addEventListener("beforeunload",()=>{
+
+try{
+
+let v=$("storyVideo");
+
+if(v)
+v.pause();
+
+document.querySelectorAll("audio")
+.forEach(a=>a.pause());
+
+let u=modules.db.me();
+
+if(u){
+u.online=false;
 modules.db.save()
 }
-},15000);
+
+}catch(e){}
+
+});
+
+/* iOS keyboard: keep composer visible */
+window.visualViewport?.addEventListener("resize",()=>{
+
+if(!document.body.classList.contains("chat-open"))
+return;
+
+let chat=document.querySelector(".chat");
+
+if(!chat)return;
+
+requestAnimationFrame(()=>{
+let input=$("messageInput");
+
+if(
+document.activeElement===input
+){
+setTimeout(()=>{
+let box=$("chatMessages");
+if(box)box.scrollTop=box.scrollHeight
+},80)
+}
+})
+
+});
 </script>
 </body>
 </html>
