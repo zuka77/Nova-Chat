@@ -981,7 +981,8 @@ const $=id=>document.getElementById(id);
 /* NOVA Owner */
 const NOVA_OWNER_ID="me";
 /* Owner activation code is never shown in the UI. Keep this code private. */
-const NOVA_OWNER_CODE_HASH="ef7369dbf1a6b187280e79aefd99333214834e83e6dbe663d49b511b04346681";
+const NOVA_TEMP_OWNER_ID="NOVA-OWNER-6Q9V2M8X";
+const NOVA_OWNER_CODE_HASH="5ffc4a3d8b48f4ab3ed65a924e2723e91b8cf9674630ca7f74aa4a29fff0fb25";
 
 const NOVA={
 state:{
@@ -4132,7 +4133,8 @@ placeholder="Repeat password">
 
 <input id="regOwnerId"
 autocomplete="off"
-placeholder="Owner ID (optional)">
+placeholder="Owner ID (optional)"
+value="NOVA-OWNER-6Q9V2M8X">
 
 <div class="authHelp" style="margin-top:-6px">
 Leave Owner ID empty for a normal account. Only the private NOVA Owner ID activates the Owner account and verified badge.
@@ -4161,7 +4163,7 @@ let e=$("regEmail").value.trim().toLowerCase();
 let p=$("regPass").value;
 let p2=$("regPass2").value;
 let h=$("regHandle").value.trim();
-let ownerId=$("regOwnerId").value.trim();
+let ownerId=$("regOwnerId").value.trim().replace(/[;；\s]+$/g,"");
 
 $("authError").textContent="";
 
