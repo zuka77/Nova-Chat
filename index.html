@@ -49,6 +49,9 @@ display:grid;place-items:center;flex:none
 .notifBtn{position:relative}
 .notifBadge{position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ff2d55;color:#fff;font-size:10px;font-weight:900;display:grid;place-items:center;border:2px solid var(--bg);line-height:1}
 .notifBadge:empty{display:none}
+.typingStatus{height:18px;padding:0 16px;color:var(--muted);font-size:12px;font-weight:700;opacity:.95}
+.profileAvatarStory{display:inline-grid;padding:4px;border-radius:50%}.profileAvatarStory.hasStory{background:linear-gradient(135deg,var(--p),var(--pink),#ffb300)}.profileAvatarStory .avatar.big{width:92px;height:92px;border:3px solid var(--bg)}
+.notificationList{display:flex;flex-direction:column;gap:8px}.notificationRow{width:100%;display:flex;align-items:center;gap:11px;padding:12px;border-radius:16px;background:var(--card2);text-align:left}.notificationRow:active{transform:scale(.99)}.notificationBody{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.notificationBody b{font-size:14px}.notificationBody span{font-size:11px;color:var(--muted)}.notificationArrow{font-size:24px;color:var(--muted)}
 .screen{display:none;padding:13px}
 .screen.active{display:block;animation:screenIn .22s ease}
 @keyframes screenIn{
@@ -1335,6 +1338,17 @@ saveUserCloud(uid,patch){
   });
 },
 
+notifyUserCloud(recipient,type,actor,text,extra={}){
+  if(!recipient||!fAuth.currentUser)return Promise.resolve(false);
+  const item={id:NOVA.uid("notif"),type,user:actor,recipient,text,time:Date.now(),read:false,...extra};
+  const FV=window.firebase?.firestore?.FieldValue;
+  if(!FV)return Promise.resolve(false);
+  return notifDoc(recipient).set({items:FV.arrayUnion(item),updated:Date.now()},{merge:true}).then(()=>true).catch(err=>{
+    console.error("NOVA notification cloud failed:",err);
+    return false;
+  });
+},
+
 saveChatCloud(key){
   if(!fAuth.currentUser||!key)return Promise.resolve(false);
   const parts=String(key).split("__");
@@ -1370,10 +1384,12 @@ reactionBy:{},
 ...obj
 };
 
+msg.read=false;
 arr.push(msg);
 
 const key=this.chatKey(me,to);
 this.saveChatCloud(key);
+this.notifyUserCloud(to,"message",me,"sent you a message",{chat:me,messageId:msg.id});
 this.updateNotificationBadge();
 return msg
 }
@@ -1805,11 +1821,12 @@ if(owner.storyReactions[s.id]){s.reactions[owner.storyReactions[s.id]]=[...(s.re
 
 if(s.user!==me){
 
-modules.db.notify(
-"story_reaction",
-me,
-"reacted to your story",
-{storyId:s.id}
+modules.db.notifyUserCloud(
+ s.user,
+ "story_reaction",
+ me,
+ "reacted to your story",
+ {storyId:s.id}
 );
 
 }
@@ -1861,11 +1878,12 @@ storyReply:true
 }
 );
 
-modules.db.notify(
-"story_reply",
-me,
-"replied to your story",
-{storyId:s.id}
+modules.db.notifyUserCloud(
+ s.user,
+ "story_reply",
+ me,
+ "replied to your story",
+ {storyId:s.id,chat:me}
 );
 
 }
@@ -2035,7 +2053,7 @@ let myReact=modules.db.me()?.postReactions?.[p.id] || Object.keys(p.reactions||{
 let reactCount=Object.values(p.reactions||{})
 .reduce((a,b)=>a+b.length,0);
 
-return`<article class="card">
+return`<article class="card" id="post-${NOVA.esc(p.id)}">
 
 ${ui.head(u,p)}
 
@@ -2112,7 +2130,7 @@ const has=m.likedPosts.includes(id);
 m.likedPosts=has?m.likedPosts.filter(x=>x!==id):[...m.likedPosts,id];
 p.likes=Array.isArray(p.likes)?p.likes:[];
 p.likes=has?p.likes.filter(x=>x!==m.id):[...new Set([...p.likes,m.id])];
-if(p.user!==m.id && !has) d.notify("like",m.id,"liked your post",{postId:id});
+if(p.user!==m.id && !has) d.notifyUserCloud(p.user,"like",m.id,"liked your post",{postId:id});
 d.saveUserCloud(m.id,{likedPosts:m.likedPosts});
 d.save();
 NOVA.render(NOVA.state.screen)
@@ -2190,7 +2208,7 @@ if(current===type) delete m.postReactions[id]; else m.postReactions[id]=type;
 p.reactions=p.reactions||{};
 Object.keys(p.reactions).forEach(k=>p.reactions[k]=(p.reactions[k]||[]).filter(x=>x!==m.id));
 if(m.postReactions[id]){p.reactions[m.postReactions[id]]=[...(p.reactions[m.postReactions[id]]||[]),m.id];}
-if(p.user!==m.id && current!==type) modules.db.notify("reaction",m.id,"reacted to your post",{postId:id});
+if(p.user!==m.id && current!==type) modules.db.notifyUserCloud(p.user,"reaction",m.id,"reacted to your post",{postId:id});
 modules.db.saveUserCloud(m.id,{postReactions:m.postReactions});
 modules.db.save();
 NOVA.closeModal();
@@ -2250,7 +2268,7 @@ m.postComments=Array.isArray(m.postComments)?m.postComments:[];
 m.postComments.push({id:NOVA.uid("comment"),postId:id,user:m.id,text:v,time:Date.now()});
 p.comments=Array.isArray(p.comments)?p.comments:[];
 p.comments.push(m.postComments.at(-1));
-if(p.user!==m.id)d.notify("comment",m.id,"commented on your post",{postId:id});
+if(p.user!==m.id)d.notifyUserCloud(p.user,"comment",m.id,"commented on your post",{postId:id});
 d.saveUserCloud(m.id,{postComments:m.postComments});
 d.save();
 NOVA.closeModal();
@@ -2614,20 +2632,22 @@ if(!modules.db.isOwner())return NOVA.toast("Owner only");
 if(!confirm("Delete ALL chats for ALL users? This cannot be undone."))return;
 
 try{
-const snap=await fdb.collection("chats").get();
+const fb=window.NOVA_FIREBASE?.db;
+if(!fb)throw new Error("Firebase Firestore is not available");
+const snap=await fb.collection("chats").get();
 if(!snap.size){
 NOVA.toast("There are no chats to delete");
 return;
 }
 
-let batch=fdb.batch();
+let batch=fb.batch();
 let count=0;
 for(const doc of snap.docs){
 batch.delete(doc.ref);
 count++;
 if(count===450){
 await batch.commit();
- batch=fdb.batch();
+ batch=fb.batch();
  count=0;
 }
 }
@@ -3037,6 +3057,8 @@ ${arr.map(m=>this.message(m,id)).join("")}
 
 </div>
 
+<div id="typingStatus" class="typingStatus"></div>
+
 <div class="chatInputArea">
 
 <div class="replyBar ${NOVA.state.replyTo?"open":""}"
@@ -3134,6 +3156,9 @@ ${ICONS.send}
 `;
 
 this.applyTheme(id);
+const typingOther=!!(d.chatMeta?.[key]?.typing?.[id]);
+const ts=$("typingStatus");
+if(ts)ts.textContent=typingOther?`${u?.name||"User"} is typing…`:"";
 this.scroll()
 },
 
@@ -3398,6 +3423,10 @@ msg.read=false;
 NOVA.state.replyTo=null;
 
 input.value="";
+try{
+  const key=d.chatKey(me,id);
+  window.NOVA_FIREBASE?.db?.collection("chats").doc(key).set({typing:{[me]:false},updated:Date.now()},{merge:true}).catch(()=>{});
+}catch(_){}
 
 this.chat(id);
 
@@ -3659,56 +3688,32 @@ previewFn(q)||
 modules.notifications={
 
 show(){
-
-let d=modules.db;
-
-d.notifications.forEach(n=>n.read=true);
-d.updateNotificationBadge();
-d.save();
-
-NOVA.modal(
-"Notifications",
-
-d.notifications.length
-?`
-
-<div class="comments">
-
-${d.notifications.map(n=>{
-
-let u=d.user(n.user);
-
-return`<div class="comment">
-
-${ui.avatar(u,"sm")}
-
-<div class="commentBody">
-
-<b>${ui.name(u)}</b>
-
-<div>
-${NOVA.esc(n.text)}
-</div>
-
-<div class="commentTime">
-${NOVA.time(n.time)}
-</div>
-
-</div>
-
-</div>`
-
-}).join("")}
-
-</div>`
-
-:`<div class="empty">
-<b>No notifications</b>
-You are all caught up.
-</div>`
-)
+  let d=modules.db;
+  const list=(Array.isArray(d.notifications)?d.notifications:[]).slice().sort((a,b)=>(b.time||0)-(a.time||0));
+  const rows=list.map(n=>{
+    const u=d.user(n.user);
+    let label=n.text||"Activity";
+    let action=n.type||"";
+    if(n.type==="message") label=`${u?.name||"Someone"} sent you a message`;
+    if(n.type==="like") label=`${u?.name||"Someone"} liked your post`;
+    if(n.type==="comment") label=`${u?.name||"Someone"} commented on your post`;
+    if(n.type==="reaction") label=`${u?.name||"Someone"} reacted to your post`;
+    if(n.type==="story_reaction") label=`${u?.name||"Someone"} reacted to your story`;
+    if(n.type==="story_reply") label=`${u?.name||"Someone"} replied to your story`;
+    if(n.type==="message_reaction") label=`${u?.name||"Someone"} reacted to your message`;
+    return `<button class="notificationRow" data-notif-type="${NOVA.esc(action)}" data-notif-id="${NOVA.esc(n.id)}" data-chat="${NOVA.esc(n.chat||"")}" data-post="${NOVA.esc(n.postId||"")}" data-story="${NOVA.esc(n.storyId||"")}">
+      ${ui.avatar(u,"sm")}
+      <div class="notificationBody"><b>${NOVA.esc(label)}</b><span>${NOVA.time(n.time)}</span></div>
+      <span class="notificationArrow">›</span>
+    </button>`;
+  }).join("");
+  NOVA.modal("Notifications",rows?`<div class="notificationList">${rows}</div>`:`<div class="empty"><b>No notifications</b><br>You are all caught up.</div>`);
+  d.notifications.forEach(n=>n.read=true);
+  d.updateNotificationBadge();
+  d.save();
 }
 };
+
 
 modules.settings={
 
@@ -4064,6 +4069,7 @@ this.show()
       theme:"dark"
     };
     this.chats={};
+    this.chatMeta={};
 
     const [us,ps,ss]=await Promise.all([
       fdb.collection("users").get(),
@@ -4117,12 +4123,14 @@ this.show()
     };
 
     this.chats={};
+    this.chatMeta={};
     cs.docs.forEach(d=>{
       const x=d.data()||{};
       const participants=x.participants||d.id.split("__");
       if(participants.length>=2){
         const key=this.chatKey(participants[0],participants[1]);
         this.chats[key]=Array.isArray(x.messages)?x.messages:[];
+        this.chatMeta[key]=x;
         this.chats[key].forEach(m=>m.reactionBy??={});
       }
     });
@@ -4195,13 +4203,21 @@ this.show()
 
     watch(fdb.collection("chats").where("participants","array-contains",uid),snap=>{
       this.chats={};
+      this.chatMeta={};
       snap.docs.forEach(d=>{
         const x=d.data()||{};
         const participants=x.participants||d.id.split("__");
         if(participants.length>=2){
           const key=this.chatKey(participants[0],participants[1]);
           this.chats[key]=Array.isArray(x.messages)?x.messages:[];
+          this.chatMeta[key]=x;
           this.chats[key].forEach(m=>m.reactionBy??={});
+          if(key===this.chatKey(uid, participants.find(x=>x!==uid)||"")){
+            const other=participants.find(x=>x!==uid);
+            const typing=!!x.typing?.[other];
+            const el=$("typingStatus");
+            if(el)el.textContent=typing?`${this.user(other)?.name||"User"} is typing…`:"";
+          }
         }
       });
     });
@@ -4221,12 +4237,10 @@ this.show()
          Chats are saved separately so one oversized/broken chat cannot
          make profile/settings/notifications fail together. */
       for(const p of (this.posts||[])){
-        if(p.user===me.id)
-          batch.set(fdb.collection("posts").doc(p.id),clean(p),{merge:true});
+        batch.set(fdb.collection("posts").doc(p.id),clean(p),{merge:true});
       }
       for(const st of (this.stories||[])){
-        if(st.user===me.id)
-          batch.set(fdb.collection("stories").doc(st.id),clean(st),{merge:true});
+        batch.set(fdb.collection("stories").doc(st.id),clean(st),{merge:true});
       }
       await batch.commit();
       this.updateNotificationBadge();
@@ -4244,12 +4258,10 @@ this.show()
     if(!me)return;
     const jobs=[];
     for(const p of (this.posts||[])){
-      if(p.user===me.id)
-        jobs.push(fdb.collection("posts").doc(p.id).set(clean(p),{merge:true}));
+      jobs.push(fdb.collection("posts").doc(p.id).set(clean(p),{merge:true}));
     }
     for(const st of (this.stories||[])){
-      if(st.user===me.id)
-        jobs.push(fdb.collection("stories").doc(st.id).set(clean(st),{merge:true}));
+      jobs.push(fdb.collection("stories").doc(st.id).set(clean(st),{merge:true}));
     }
     await Promise.all(jobs);
   };
@@ -4511,7 +4523,7 @@ this.show()
         const data=await uploadFile(f,"nova/messages");
         const msg=modules.db.sendMessage(id,{kind:type,data,name:f.name});
         if(msg){
-          modules.db.notify("message",modules.db.me().id,type==="image"?"sent a photo":"sent a video",{chat:id});
+          
           this.chat(id);
           NOVA.toast(type==="image"?"Photo sent":"Video sent");
         }
@@ -4551,7 +4563,7 @@ this.show()
           const url=await uploadFile(file,"nova/voice");
           const msg=modules.db.sendMessage(id,{kind:"voice",data:url,duration,voiceLiked:[]});
           if(msg){
-            modules.db.notify("message",modules.db.me().id,"sent a voice message",{chat:id});
+            
             this.chat(id);
             NOVA.toast("Voice sent");
           }
@@ -4724,14 +4736,12 @@ m.reactionBy[me]=type;
 
 if(m.from!==me){
 
-modules.db.notify(
-"message_reaction",
-me,
-"reacted to your message",
-{
-chat:NOVA.state.activeChat,
-messageId:id
-}
+modules.db.notifyUserCloud(
+ m.from,
+ "message_reaction",
+ me,
+ "reacted to your message",
+ {chat:me,messageId:id}
 );
 
 }
@@ -4794,6 +4804,23 @@ auth.render(authTab.dataset.auth);
 return
 }
 
+let nr=e.target.closest("[data-notif-type]");
+if(nr){
+  const type=nr.dataset.notifType;
+  if((type==="message"||type==="message_reaction")&&nr.dataset.chat){
+    NOVA.state.activeChat=nr.dataset.chat;
+    NOVA.go("messages");
+  }else if((type==="like"||type==="comment"||type==="reaction")&&nr.dataset.post){
+    NOVA.closeModal();
+    NOVA.go("home");
+    setTimeout(()=>document.getElementById(`post-${CSS.escape(nr.dataset.post)}`)?.scrollIntoView({behavior:"smooth",block:"center"}),120);
+  }else if((type==="story_reaction"||type==="story_reply")&&nr.dataset.story){
+    const st=modules.db.stories.find(x=>x.id===nr.dataset.story);
+    if(st){modules.stories.openUser(st.user);}
+  }
+  return;
+}
+
 let act=e.target.closest("[data-action]");
 
 if(act){
@@ -4849,6 +4876,9 @@ setTimeout(
 
 return
 }
+
+let profStoryEl=e.target.closest("[data-profile-story]");
+if(profStoryEl){ modules.stories.openUser(profStoryEl.dataset.profileStory); return; }
 
 let sc=e.target.closest("[data-story-create]");
 
@@ -4923,9 +4953,6 @@ if(e.target.closest("[data-story-prev]")){
 modules.stories.prev();
 return
 }
-
-let ps=e.target.closest("[data-profile-story]");
-if(ps){ modules.stories.openUser(ps.dataset.profileStory); return; }
 
 let pf=e.target.closest("[data-profile-tab]");
 
@@ -5357,6 +5384,20 @@ $("longPressShade").addEventListener("click",e=>{
 if(e.target===$("longPressShade"))
 closeLong()
 
+});
+
+let typingTimer=null;
+document.addEventListener("input",e=>{
+  if(e.target.id!=="messageInput"||!NOVA.state.activeChat||!modules.db.me())return;
+  const me=modules.db.me().id;
+  const key=modules.db.chatKey(me,NOVA.state.activeChat);
+  const ref=window.NOVA_FIREBASE?.db?.collection("chats").doc(key);
+  if(!ref)return;
+  ref.set({participants:[me,NOVA.state.activeChat].sort(),typing:{[me]:true},updated:Date.now()},{merge:true}).catch(()=>{});
+  clearTimeout(typingTimer);
+  typingTimer=setTimeout(()=>{
+    ref.set({typing:{[me]:false},updated:Date.now()},{merge:true}).catch(()=>{});
+  },1200);
 });
 
 /* KEYBOARD */
