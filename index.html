@@ -26,6 +26,7 @@ width:100%;background:var(--card2);color:var(--text);
 border:1px solid var(--line);border-radius:15px;padding:13px;outline:none
 }
 input:focus,textarea:focus{border-color:#8b5cf666}
+html{overscroll-behavior-x:none} body{overscroll-behavior-y:none} textarea,input{-webkit-user-select:text;user-select:text;-webkit-appearance:none} .form{padding-bottom:max(8px,env(safe-area-inset-bottom))} @media (max-width:680px){.modal{max-height:92dvh}.modalBody{max-height:calc(92dvh - 80px);overflow:auto;-webkit-overflow-scrolling:touch}.chatInput{padding-bottom:max(8px,env(safe-area-inset-bottom))}}
 .app{max-width:680px;margin:auto}
 .top{
 height:64px;position:sticky;top:0;z-index:30;
@@ -1202,11 +1203,7 @@ isOwner(id){
   const fu=window.NOVA_FIREBASE?.auth?.currentUser;
   if(!fu)return false;
   const mapped=window.NOVA_OWNER_UID||"";
-  const me=this.user(target)||this.user(fu.uid);
-  return !!(
-    (mapped && target===mapped && fu.uid===mapped) ||
-    (target===fu.uid && me?.owner===true)
-  );
+  return !!(mapped && target===mapped && fu.uid===mapped);
 },
 
 setVerified(id,value){
@@ -1353,15 +1350,29 @@ saveChatCloud(key){
   if(!fAuth.currentUser||!key)return Promise.resolve(false);
   const parts=String(key).split("__");
   if(parts.length!==2||!parts.includes(fAuth.currentUser.uid))return Promise.resolve(false);
-  return fdb.collection("chats").doc(key).set({
-    participants:parts,
-    messages:Array.isArray(this.chats[key])?this.chats[key].map(m=>clean(m)):[],
-    updated:Date.now()
-  },{merge:true}).then(()=>true).catch(err=>{
-    console.error("NOVA chat cloud save failed:",err);
-    NOVA.toast("Chat save failed: "+(err?.message||"Firebase error"));
-    return false;
-  });
+  this._chatWriteQueue??={};
+  const run=async()=>{
+    const ref=fdb.collection("chats").doc(key);
+    const local=Array.isArray(this.chats[key])?this.chats[key].map(m=>clean(m)):[];
+    try{
+      await fdb.runTransaction(async tx=>{
+        const snap=await tx.get(ref);
+        const remote=Array.isArray(snap.data()?.messages)?snap.data().messages:[];
+        const byId=new Map(remote.map(m=>[m.id,m]));
+        local.forEach(m=>byId.set(m.id,m));
+        const messages=[...byId.values()].sort((a,b)=>(a.time||0)-(b.time||0));
+        tx.set(ref,{participants:parts,messages,updated:Date.now()},{merge:true});
+      });
+      return true;
+    }catch(err){
+      console.error("NOVA chat cloud save failed:",err);
+      return false;
+    }
+  };
+  const prev=this._chatWriteQueue[key]||Promise.resolve();
+  const next=prev.catch(()=>{}).then(run);
+  this._chatWriteQueue[key]=next.finally(()=>{if(this._chatWriteQueue[key]===next)this._chatWriteQueue[key]=Promise.resolve();});
+  return next;
 },
 
 sendMessage(to,obj){
@@ -1558,6 +1569,7 @@ async file(f){
 
 if(!f)return;
 
+this._selectedFile=f;
 let data=await NOVA.image(f);
 
 $("storyImagePreview").style.display="none";
@@ -1582,36 +1594,28 @@ $("storyFileInfo").textContent="Photo selected"
 }
 },
 
-submit(){
-
-let t=$("storyText").value.trim();
-let v=$("storyVideoPreview");
-let i=$("storyImagePreview");
-
-let media=v.dataset.data||i.dataset.data||"";
-let type=v.dataset.type||i.dataset.type||"text";
-
-if(!t&&!media)
-return NOVA.toast("Add text or media");
-
-let d=modules.db;
-let m=d.me();
-
-d.stories.push({
-id:NOVA.uid("story"),
-user:m.id,
-text:t,
-media,
-mediaType:type,
-reactions:{},
-replies:[],
-created:Date.now()
-});
-
-d.save();
-NOVA.closeModal();
-NOVA.render("home");
-NOVA.toast("Story added ✨")
+async submit(){
+  let t=$("storyText")?.value.trim()||"";
+  let file=this._selectedFile||null;
+  if(!t&&!file)return NOVA.toast("Add text or media");
+  let d=modules.db,m=d.me();
+  const btn=$("storyText")?.closest(".form")?.querySelector("[data-story-submit]");
+  if(btn){btn.disabled=true;btn.textContent="Sharing…";}
+  try{
+    let media="",type="text";
+    if(file){
+      if(file.size>50*1024*1024)throw new Error("Media must be 50 MB or smaller");
+      media=await window.NOVA_UPLOAD_FILE(file,`nova/stories/${m.id}`);
+      type=file.type.startsWith("video/")?"video":"image";
+      if(!media)throw new Error("Media upload failed");
+    }
+    const st={id:NOVA.uid("story"),user:m.id,text:t,media,mediaType:type,reactions:{},replies:[],created:Date.now()};
+    d.stories.push(st);
+    const ok=await d.saveStoryCloud(st.id);
+    if(!ok)throw new Error("Story could not be saved to Firebase");
+    d.save(); NOVA.closeModal(); NOVA.render("home"); NOVA.toast("Story added ✨");
+  }catch(e){NOVA.toast(e?.message||"Could not share story");}
+  finally{if(btn){btn.disabled=false;btn.textContent="Share story";}}
 },
 
 openUser(id){
@@ -1979,6 +1983,7 @@ let f=e.target.files[0];
 
 if(!f)return;
 
+this._selectedFile=f;
 let x=await NOVA.image(f);
 
 $("postImagePreview").style.display="none";
@@ -2004,39 +2009,29 @@ $("postFileInfo").textContent="Photo selected"
 }
 },
 
-submit(){
-
-let text=$("postText").value.trim();
-let i=$("postImagePreview");
-let v=$("postVideoPreview");
-
-let media=v.dataset.data||i.dataset.data||"";
-let type=v.dataset.type||i.dataset.type||"";
-
-if(!text&&!media)
-return NOVA.toast("Write something or add media");
-
-let d=modules.db;
-
-d.posts.unshift({
-id:NOVA.uid("post"),
-user:d.me().id,
-text,
-media,
-mediaType:type,
-likes:[],
-comments:[],
-reactions:{},
-reposts:0,
-savedBy:[],
-created:Date.now()
-});
-
-d.save();
-
-NOVA.closeModal();
-NOVA.go("home");
-NOVA.toast("Post published")
+async submit(){
+  const btn=$("authBody")?.querySelector("[data-create-submit]") || $("postText")?.closest(".form")?.querySelector("[data-create-submit]");
+  let text=$("postText")?.value.trim()||"";
+  let file=this._selectedFile||null;
+  if(!text&&!file)return NOVA.toast("Write something or add media");
+  if(btn){btn.disabled=true;btn.textContent="Publishing…";}
+  try{
+    let media="",type="";
+    if(file){
+      if(file.size>50*1024*1024)throw new Error("Media must be 50 MB or smaller");
+      media=await window.NOVA_UPLOAD_FILE(file,`nova/posts/${modules.db.me().id}`);
+      type=file.type.startsWith("video/")?"video":"image";
+      if(!media)throw new Error("Media upload failed");
+    }
+    const d=modules.db;
+    const post={id:NOVA.uid("post"),user:d.me().id,text,media,mediaType:type,likes:[],comments:[],reactions:{},reposts:0,savedBy:[],created:Date.now()};
+    d.posts.unshift(post);
+    const ok=await d.savePostCloud(post.id);
+    if(!ok)throw new Error("Post could not be saved to Firebase");
+    d.save();
+    NOVA.closeModal(); NOVA.go("home"); NOVA.toast("Post published");
+  }catch(e){NOVA.toast(e?.message||"Could not publish post");}
+  finally{if(btn){btn.disabled=false;btn.textContent="Publish post";}}
 },
 
 card(p){
@@ -2132,6 +2127,7 @@ p.likes=Array.isArray(p.likes)?p.likes:[];
 p.likes=has?p.likes.filter(x=>x!==m.id):[...new Set([...p.likes,m.id])];
 if(p.user!==m.id && !has) d.notifyUserCloud(p.user,"like",m.id,"liked your post",{postId:id});
 d.saveUserCloud(m.id,{likedPosts:m.likedPosts});
+d.savePostCloud(id);
 d.save();
 NOVA.render(NOVA.state.screen)
 },
@@ -2144,6 +2140,7 @@ const has=m.savedPosts.includes(id);
 m.savedPosts=has?m.savedPosts.filter(x=>x!==id):[...m.savedPosts,id];
 p.savedBy=has?(p.savedBy||[]).filter(x=>x!==m.id):[...new Set([...(p.savedBy||[]),m.id])];
 d.saveUserCloud(m.id,{savedPosts:m.savedPosts});
+d.savePostCloud(id);
 d.save();
 NOVA.render(NOVA.state.screen)
 },
@@ -2167,6 +2164,7 @@ created:Date.now()
 });
 
 d.save();
+d.savePostCloud(d.posts[0]?.id);
 NOVA.go("home");
 NOVA.toast("Reposted")
 },
@@ -2210,6 +2208,7 @@ Object.keys(p.reactions).forEach(k=>p.reactions[k]=(p.reactions[k]||[]).filter(x
 if(m.postReactions[id]){p.reactions[m.postReactions[id]]=[...(p.reactions[m.postReactions[id]]||[]),m.id];}
 if(p.user!==m.id && current!==type) modules.db.notifyUserCloud(p.user,"reaction",m.id,"reacted to your post",{postId:id});
 modules.db.saveUserCloud(m.id,{postReactions:m.postReactions});
+modules.db.savePostCloud(id);
 modules.db.save();
 NOVA.closeModal();
 NOVA.render(NOVA.state.screen)
@@ -2270,6 +2269,7 @@ p.comments=Array.isArray(p.comments)?p.comments:[];
 p.comments.push(m.postComments.at(-1));
 if(p.user!==m.id)d.notifyUserCloud(p.user,"comment",m.id,"commented on your post",{postId:id});
 d.saveUserCloud(m.id,{postComments:m.postComments});
+d.savePostCloud(id);
 d.save();
 NOVA.closeModal();
 NOVA.render(NOVA.state.screen)
@@ -2616,15 +2616,13 @@ ${u.verified?"Remove":"Give badge"}
 </div>
 `)
 },
-toggle(id){
+async toggle(id){
 if(!modules.db.isOwner())return NOVA.toast("Owner only");
 let u=modules.db.user(id);
 if(!u)return;
 let next=!u.verified;
-if(modules.db.setVerified(id,next)){
-this.render();
-NOVA.toast(next?"Verified badge added ✓":"Verified badge removed");
-}
+const ok=await modules.db.setVerified(id,next);
+if(ok){this.render();NOVA.toast(next?"Verified badge added ✓":"Verified badge removed");}
 },
 
 async deleteAllChats(){
@@ -3448,8 +3446,9 @@ let f=input.files[0];
 
 if(!f)return;
 
-let data=await NOVA.image(f);
-
+if(f.size>50*1024*1024)return NOVA.toast("Media must be 50 MB or smaller");
+let data=await window.NOVA_UPLOAD_FILE(f,`nova/chats/${modules.db.me().id}`);
+if(!data)return NOVA.toast("Media upload failed");
 let msg=modules.db.sendMessage(
 id,
 {
@@ -4030,6 +4029,7 @@ this.show()
     const data=await NOVA_UPLOAD_TO_CLOUDINARY(file,{folder});
     return data.secure_url||data.url||"";
   }
+  window.NOVA_UPLOAD_FILE=uploadFile;
 
   async function ensureProfile(fu, fallback={}){
     if(!fu) return null;
@@ -4226,44 +4226,47 @@ this.show()
   modules.db.save=async function(){
     const me=this.me();
     if(!me||!fAuth.currentUser)return false;
-
     try{
       const batch=fdb.batch();
       batch.set(userDoc(me.id),clean(me),{merge:true});
       batch.set(notifDoc(me.id),{items:(this.notifications||[]).slice(0,100),updated:Date.now()},{merge:true});
       batch.set(settingsDoc(me.id),clean(this.settings||{}),{merge:true});
-
-      /* Only public documents owned by the current user are saved here.
-         Chats are saved separately so one oversized/broken chat cannot
-         make profile/settings/notifications fail together. */
-      for(const p of (this.posts||[])){
-        batch.set(fdb.collection("posts").doc(p.id),clean(p),{merge:true});
-      }
-      for(const st of (this.stories||[])){
-        batch.set(fdb.collection("stories").doc(st.id),clean(st),{merge:true});
-      }
       await batch.commit();
       this.updateNotificationBadge();
       return true;
     }catch(err){
-      console.error("NOVA cloud save failed:",err);
+      console.error("NOVA private cloud save failed:",err);
       window.NOVA_ONLINE_ERROR=err?.message||String(err);
-      NOVA.toast("Cloud save failed: "+(err?.message||"Firebase error"));
       return false;
     }
   };
 
+  modules.db.savePostCloud=function(id){
+    const p=this.post(id), me=this.me();
+    if(!p||!me||!fAuth.currentUser)return Promise.resolve(false);
+    return fdb.collection("posts").doc(id).set(clean(p),{merge:true}).then(()=>true).catch(err=>{
+      console.error("NOVA post cloud save failed:",err);
+      return false;
+    });
+  };
+
+  modules.db.saveStoryCloud=function(id){
+    const st=(this.stories||[]).find(x=>x.id===id), me=this.me();
+    if(!st||!me||!fAuth.currentUser)return Promise.resolve(false);
+    return fdb.collection("stories").doc(id).set(clean(st),{merge:true}).then(()=>true).catch(err=>{
+      console.error("NOVA story cloud save failed:",err);
+      return false;
+    });
+  };
+
   modules.db.savePublic=async function(){
     const me=this.me();
-    if(!me)return;
+    if(!me)return false;
     const jobs=[];
-    for(const p of (this.posts||[])){
-      jobs.push(fdb.collection("posts").doc(p.id).set(clean(p),{merge:true}));
-    }
-    for(const st of (this.stories||[])){
-      jobs.push(fdb.collection("stories").doc(st.id).set(clean(st),{merge:true}));
-    }
+    for(const p of (this.posts||[]).filter(x=>x.user===me.id)) jobs.push(fdb.collection("posts").doc(p.id).set(clean(p),{merge:true}));
+    for(const st of (this.stories||[]).filter(x=>x.user===me.id)) jobs.push(fdb.collection("stories").doc(st.id).set(clean(st),{merge:true}));
     await Promise.all(jobs);
+    return true;
   };
 
   modules.db.deletePostCloud=async function(id){
@@ -4452,45 +4455,6 @@ this.show()
   },30000);
 
   /* Firebase Auth state is handled by the single APP BOOT listener below. */
-
-  /* Upload media to Cloudinary instead of storing base64 in Firestore. */
-  const originalPostSubmit=modules.posts.submit.bind(modules.posts);
-  modules.posts.submit=async function(){
-    const file=$("postFile")?.files?.[0];
-    if(file){
-      const info=$("postFileInfo");
-      if(info)info.textContent="Uploading…";
-      try{
-        const url=await uploadFile(file,"nova/posts");
-        const i=$("postImagePreview"),v=$("postVideoPreview");
-        if(v?.dataset.type==="video"){v.dataset.data=url;}
-        else if(i){i.dataset.data=url;}
-      }catch(e){
-        console.error(e);
-        return NOVA.toast("Media upload failed");
-      }
-    }
-    return originalPostSubmit();
-  };
-
-  const originalStorySubmit=modules.stories.submit.bind(modules.stories);
-  modules.stories.submit=async function(){
-    const file=$("storyFile")?.files?.[0];
-    if(file){
-      const info=$("storyFileInfo");
-      if(info)info.textContent="Uploading…";
-      try{
-        const url=await uploadFile(file,"nova/stories");
-        const i=$("storyImagePreview"),v=$("storyVideoPreview");
-        if(v?.dataset.type==="video"){v.dataset.data=url;}
-        else if(i){i.dataset.data=url;}
-      }catch(e){
-        console.error(e);
-        return NOVA.toast("Media upload failed");
-      }
-    }
-    return originalStorySubmit();
-  };
 
   /* Profile avatar -> Cloudinary. */
   const originalProfileSave=modules.profile.save.bind(modules.profile);
