@@ -1163,120 +1163,22 @@ posts:[],
 stories:[],
 messages:[],
 notifications:[],
-settings:{notifications:true,online:true,autoplay:true,theme:"dark"},
-chats:{
-
-init(){
-
-this.users=NOVA.get("users",null);
-this.posts=NOVA.get("posts",null);
-this.stories=NOVA.get("stories",null);
-this.messages=NOVA.get("messages",[]);
-this.notifications=NOVA.get("notifications",[]);
-this.settings=NOVA.get("settings",{
+settings:{
 notifications:true,
 online:true,
 autoplay:true,
 theme:"dark"
-});
-this.chats=NOVA.get("chats",{});
-
-if(!this.users){
-this.users=[
-{id:"me",name:"Carlos",handle:"@carlos",bio:"Welcome to NOVA 🚀",avatar:"",
-followers:0,following:0,followingUsers:[],online:true},
-
-{id:"mia",name:"Mia Carter",handle:"@miacarter",
-bio:"Creator • Fashion ✨",
-avatar:"https://i.pravatar.cc/300?img=47",
-followers:5420,following:310,followingUsers:[],online:true},
-
-{id:"alex",name:"Alex Stone",handle:"@alexstone",
-bio:"Photography • Travel",
-avatar:"https://i.pravatar.cc/300?img=12",
-followers:1830,following:241,followingUsers:[],online:true},
-
-{id:"luna",name:"Luna Rose",handle:"@lunarose",
-bio:"Music • Creator",
-avatar:"https://i.pravatar.cc/300?img=44",
-followers:9210,following:532,followingUsers:[],online:true},
-
-{id:"leo",name:"Leo James",handle:"@leojames",
-bio:"Building cool things",
-avatar:"https://i.pravatar.cc/300?img=33",
-followers:750,following:402,followingUsers:[],online:true},
-
-{id:"sara",name:"Sara Moon",handle:"@saramoon",
-bio:"Lifestyle",
-avatar:"https://i.pravatar.cc/300?img=49",
-followers:2100,following:420,followingUsers:[],online:true}
-]
-}
-
-if(!this.posts){
-this.posts=[
-{
-id:"p1",user:"mia",
-text:"Welcome to NOVA 🚀\nYour social universe starts here. #nova #social",
-media:"https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1000&q=80",
-mediaType:"image",likes:["alex"],comments:[],
-reactions:{},reposts:2,savedBy:[],
-created:Date.now()-3600000
 },
-{
-id:"p2",user:"alex",
-text:"Beautiful day for creating something new.",
-media:"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1000&q=80",
-mediaType:"image",likes:["mia"],comments:[],
-reactions:{},reposts:1,savedBy:[],
-created:Date.now()-7200000
-},
-{
-id:"p3",user:"luna",
-text:"What are you listening to today?",
-media:"",mediaType:"",likes:["mia"],comments:[],
-reactions:{},reposts:4,savedBy:[],
-created:Date.now()-86400000
-}
-]
-}
+chats:{},
 
-if(!this.stories){
-this.stories=[
-{
-id:"s1",user:"mia",text:"NOVA ✨",
-media:"https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80",
-mediaType:"image",reactions:{},replies:[],
-created:Date.now()-500000
-},
-{
-id:"s2",user:"alex",text:"Travel",
-media:"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",
-mediaType:"image",reactions:{},replies:[],
-created:Date.now()-400000
-},
-{
-id:"s3",user:"luna",text:"Music",
-media:"",mediaType:"text",reactions:{},replies:[],
-created:Date.now()-300000
-}
-]
-}
-
-this.stories.forEach(s=>{
-s.reactions??={};
-s.replies??=[];
-});
-
-this.posts.forEach(p=>{
-p.likes??=[];
-p.comments??=[];
-p.reactions??={};
-p.savedBy??=[];
-p.reposts??=0;
-});
-
-this.save()
+init(){
+  this.users=[];
+  this.posts=[];
+  this.stories=[];
+  this.messages=[];
+  this.notifications=[];
+  this.settings={notifications:true,online:true,autoplay:true,theme:"dark"};
+  this.chats={};
 },
 
 isOwner(id){
@@ -2481,12 +2383,12 @@ render(){
 let d=modules.db;
 let q=NOVA.state.search.toLowerCase();
 
-let users=d.users.filter(u=>
+let users=(Array.isArray(d.users)?d.users:[]).filter(u=>
 (u.name+" "+u.handle+" "+u.bio)
 .toLowerCase().includes(q)
 );
 
-let posts=d.posts.filter(p=>
+let posts=(Array.isArray(d.posts)?d.posts:[]).filter(p=>
 (p.text||"").toLowerCase().includes(q)
 );
 
@@ -2693,7 +2595,7 @@ Give or remove the official blue badge from NOVA users.
 </div>
 </div>
 <div class="card" style="margin:0">
-${d.users.filter(u=>u.id!==window.NOVA_OWNER_UID).map(u=>`
+${(Array.isArray(d.users)?d.users:[]).filter(u=>u.id!==window.NOVA_OWNER_UID).map(u=>`
 <div class="people">
 ${ui.avatar(u,"sm")}
 <div class="userInfo">
@@ -2771,26 +2673,26 @@ let u=d.user(id);
 
 if(!u)return;
 
-let posts=d.posts.filter(p=>p.user===id);
+let posts=(Array.isArray(d.posts)?d.posts:[]).filter(p=>p.user===id);
 
 let tab=own
 ?NOVA.state.profileTab
 :"posts";
 
 if(tab==="saved")
-posts=d.posts.filter(p=>
+posts=(Array.isArray(d.posts)?d.posts:[]).filter(p=>
 (p.savedBy||[]).includes(d.me().id)
 );
 
 if(tab==="liked")
-posts=d.posts.filter(p=>
+posts=(Array.isArray(d.posts)?d.posts:[]).filter(p=>
 (p.likes||[]).includes(d.me().id)
 );
 
 if(tab==="media")
 posts=posts.filter(p=>p.media);
 
-let stories=d.stories.filter(s=>s.user===id);
+let stories=(Array.isArray(d.stories)?d.stories:[]).filter(s=>s.user===id);
 
 $("profile").innerHTML=`
 
@@ -2813,7 +2715,7 @@ ${NOVA.esc(u.bio)}
 <div class="stats">
 
 <div class="stat">
-<b>${d.posts.filter(p=>p.user===id).length}</b>
+<b>${(Array.isArray(d.posts)?d.posts:[]).filter(p=>p.user===id).length}</b>
 <span>Posts</span>
 </div>
 
@@ -3005,7 +2907,7 @@ return
 let d=modules.db;
 let me=d.me();
 
-let users=d.users.filter(u=>u.id!==me.id);
+let users=(Array.isArray(d.users)?d.users:[]).filter(u=>u.id!==me.id);
 
 $("messages").innerHTML=`
 
@@ -4552,7 +4454,7 @@ this.show()
       await fdb.collection("users").doc(id).set(profile,{merge:true});
 
       auth.session={userId:id,email:fu.email||e};
-      modules.db.users=modules.db.users.filter(x=>x.id!==id);
+      modules.db.users=(Array.isArray(modules.db.users)?modules.db.users:[]).filter(x=>x.id!==id);
       modules.db.users.push(profile);
       modules.db.posts??=[];
       modules.db.stories??=[];
@@ -5229,8 +5131,7 @@ if(menu.dataset.menu==="delete"){
 if(confirm("Delete this post?")){
 
 const deletingId=menu.dataset.id;
-modules.db.posts=
-modules.db.posts.filter(
+modules.db.posts=(Array.isArray(modules.db.posts)?modules.db.posts:[]).filter(
 x=>x.id!==deletingId
 );
 
