@@ -981,7 +981,7 @@ const $=id=>document.getElementById(id);
 /* NOVA Owner */
 const NOVA_OWNER_ID="me";
 /* Owner activation code is never shown in the UI. Keep this code private. */
-const NOVA_OWNER_CODE_HASH="ef7369dbf1a6b187280e79aefd99333214834e83e6dbe663d49b511b04346681";
+const NOVA_OWNER_CODE_HASH="58b0543433dfbf2b8c1b35794c0363465e464522e659772d86a7efd4504aeabd";
 
 const NOVA={
 state:{
@@ -4444,6 +4444,7 @@ this.show()
     if(fu){
       await ensureProfile(fu);
       await this.loadPrivate(fu.uid);
+      this.startRealtime(fu.uid);
     }
     window.NOVA_ONLINE_READY=true;
   };
@@ -4472,6 +4473,78 @@ this.show()
         this.chats[key]=Array.isArray(x.messages)?x.messages:[];
         this.chats[key].forEach(m=>m.reactionBy??={});
       }
+    });
+  };
+
+  /* REALTIME SYNC — Firestore listeners keep NOVA live without refresh. */
+  let realtimeUnsubs=[];
+  let realtimeRenderTimer=null;
+  const scheduleRealtimeRender=()=>{
+    clearTimeout(realtimeRenderTimer);
+    realtimeRenderTimer=setTimeout(()=>{
+      try{
+        if(!auth.session || !modules.db.me())return;
+        const screen=NOVA.state?.screen||"home";
+        NOVA.render(screen);
+      }catch(e){ console.error("NOVA realtime render failed:",e); }
+    },60);
+  };
+
+  modules.db.stopRealtime=function(){
+    realtimeUnsubs.forEach(fn=>{try{fn()}catch(e){}});
+    realtimeUnsubs=[];
+  };
+
+  modules.db.startRealtime=function(uid){
+    this.stopRealtime();
+    if(!uid)return;
+
+    const watch=(query,apply)=>{
+      const unsub=query.onSnapshot(snap=>{
+        try{ apply(snap); scheduleRealtimeRender(); }
+        catch(e){ console.error("NOVA realtime update failed:",e); }
+      },err=>console.error("NOVA realtime listener error:",err));
+      realtimeUnsubs.push(unsub);
+    };
+
+    watch(fdb.collection("users"),snap=>{
+      this.users=snap.docs.map(d=>({id:d.id,...d.data()}));
+      const owner=this.user(NOVA_OWNER_ID);
+      if(owner)owner.verified=true;
+    });
+
+    watch(fdb.collection("posts"),snap=>{
+      this.posts=snap.docs.map(d=>({__docId:d.id,...d.data()}));
+      this.posts.forEach(p=>{
+        p.likes??=[]; p.comments??=[]; p.reactions??={};
+        p.savedBy??=[]; p.reposts??=0;
+      });
+    });
+
+    watch(fdb.collection("stories"),snap=>{
+      this.stories=snap.docs.map(d=>({__docId:d.id,...d.data()}));
+      this.stories.forEach(st=>{st.reactions??={};st.replies??=[];});
+    });
+
+    watch(notifDoc(uid),snap=>{
+      this.notifications=snap.exists?(snap.data().items||[]):[];
+    });
+
+    watch(settingsDoc(uid),snap=>{
+      this.settings={notifications:true,online:true,autoplay:true,theme:"dark",...(snap.exists?snap.data():{})};
+    });
+
+    watch(fdb.collection("chats").where("participants","array-contains",uid),snap=>{
+      this.chats={};
+      snap.docs.forEach(d=>{
+        const x=d.data()||{};
+        const participants=x.participants||d.id.split("__");
+        if(participants.length>=2){
+          const key=this.chatKey(participants[0],participants[1]);
+          this.chats[key]=Array.isArray(x.messages)?x.messages:[];
+          this.chats[key].forEach(m=>m.reactionBy??={});
+        }
+      });
     });
   };
 
@@ -4710,6 +4783,7 @@ this.show()
       await fAuth.signOut();
     }catch(e){console.error(e);}
     auth.session=null;
+    try{modules.db.stopRealtime?.();}catch(e){}
     document.body.classList.remove("chat-open");
     auth.show();
     auth.render("login");
@@ -4727,36 +4801,7 @@ this.show()
     }catch(e){}
   },30000);
 
-  fAuth.onAuthStateChanged(async fu=>{
-    if(!fu){
-      auth.session=null;
-      auth.show();
-      auth.render("login");
-      return;
-    }
-    try{
-      const profile=await ensureProfile(fu);
-      auth.session={userId:profile.id,email:fu.email||""};
-      await modules.db.init();
-      const u=modules.db.user(profile.id);
-      if(u){
-        u.online=true;
-        u.lastSeen=Date.now();
-        await userDoc(profile.id).set({online:true,lastSeen:Date.now()},{merge:true});
-      }
-      auth.hide();
-      NOVA.go("home");
-    }catch(e){
-      console.error("NOVA boot failed:",e);
-      const body=$("authBody");
-      if(body){
-        auth.show();
-        auth.render("login");
-        const er=$("authBody").querySelector("#authError");
-        if(er)er.textContent="Could not load NOVA data: "+(e?.message||"Firebase error");
-      }
-    }
-  });
+  /* Firebase Auth state is handled by the single APP BOOT listener below. */
 
   /* Upload media to Cloudinary instead of storing base64 in Firestore. */
   const originalPostSubmit=modules.posts.submit.bind(modules.posts);
