@@ -1184,8 +1184,13 @@ init(){
 isOwner(id){
   const target=String(id||this.me()?.id||"");
   const fu=window.NOVA_FIREBASE?.auth?.currentUser;
+  if(!fu)return false;
   const mapped=window.NOVA_OWNER_UID||"";
-  return !!fu && (target===mapped && fu.uid===mapped);
+  const me=this.user(target)||this.user(fu.uid);
+  return !!(
+    (target===fu.uid && me?.owner===true) ||
+    (mapped && target===mapped && fu.uid===mapped)
+  );
 },
 
 setVerified(id,value){
@@ -4441,13 +4446,14 @@ this.show()
         id,
         name:n,
         handle:h,
-        bio:"New on NOVA 🚀",
+        bio:isOwner?"Official NOVA Owner 👑":"New on NOVA 🚀",
         avatar:"",
         followers:0,
         following:0,
         followingUsers:[],
         online:true,
-        verified:false,
+        verified:!!isOwner,
+        owner:!!isOwner,
         created:Date.now()
       };
 
