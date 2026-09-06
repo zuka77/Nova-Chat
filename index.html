@@ -4007,49 +4007,8 @@ Log out
 
 const auth={
 
-accounts:NOVA.get("accounts",[]),
-session:NOVA.get("session",null),
+session:null,
 
-async derive(password,salt){
-
-if(!crypto?.subtle)
-return NOVA.hashText(password+JSON.stringify(salt));
-
-let key=await crypto.subtle.importKey(
-"raw",
-new TextEncoder().encode(password),
-"PBKDF2",
-false,
-["deriveBits"]
-);
-
-let bits=await crypto.subtle.deriveBits(
-{
-name:"PBKDF2",
-salt:new Uint8Array(salt),
-iterations:120000,
-hash:"SHA-256"
-},
-key,
-256
-);
-
-return[...new Uint8Array(bits)]
-.map(x=>x.toString(16).padStart(2,"0"))
-.join("")
-},
-
-async hash(password){
-
-let salt=crypto.getRandomValues(
-new Uint8Array(16)
-);
-
-return{
-salt:[...salt],
-hash:await this.derive(password,salt)
-}
-},
 
 render(mode="login"){
 
@@ -4154,158 +4113,6 @@ I already have an account
 </button>
 
 </form>`
-},
-
-async register(){
-
-let n=$("regName").value.trim();
-let e=$("regEmail").value.trim().toLowerCase();
-let p=$("regPass").value;
-let p2=$("regPass2").value;
-let h=$("regHandle").value.trim();
-let ownerId=$("regOwnerId").value.trim().replace(/[;；\s]+$/g,"");
-
-$("authError").textContent="";
-
-if(n.length<2)
-return $("authError").textContent="Enter your name.";
-
-if(!e.includes("@"))
-return $("authError").textContent=
-"Enter an email-like address.";
-
-if(p.length<6)
-return $("authError").textContent=
-"Password must be at least 6 characters.";
-
-if(p!==p2)
-return $("authError").textContent=
-"Passwords do not match.";
-
-if(this.accounts.some(x=>x.email===e))
-return $("authError").textContent=
-"Account already exists.";
-
-let ownerHash="";
-if(ownerId){
-  ownerHash=await NOVA.hashText(ownerId);
-  if(ownerHash!==NOVA_OWNER_CODE_HASH)
-    return $("authError").textContent="Invalid Owner ID.";
-  if(this.accounts.some(x=>x.userId===NOVA_OWNER_ID))
-    return $("authError").textContent="The NOVA Owner account is already registered.";
-}
-
-if(!h)
-h="@"+
-n.toLowerCase()
-.replace(/[^a-z0-9]/g,"")
-.slice(0,14)+
-Math.floor(Math.random()*90+10);
-
-if(!h.startsWith("@"))
-h="@"+h;
-
-let id=ownerId
-?NOVA_OWNER_ID
-:NOVA.uid("user");
-
-let sec=await this.hash(p);
-
-let old=modules.db.user(id);
-
-if(old){
-
-old.name=n;
-old.handle=h;
-old.online=true
-
-}else{
-
-modules.db.users.push({
-id,
-name:n,
-handle:h,
-bio:"New on NOVA 🚀",
-avatar:"",
-followers:0,
-following:0,
-followingUsers:[],
-online:true,
-verified:id===NOVA_OWNER_ID
-})
-
-}
-
-this.accounts.push({
-id,
-email:e,
-passwordHash:sec.hash,
-salt:sec.salt,
-userId:id,
-created:Date.now()
-});
-
-NOVA.set("accounts",this.accounts);
-
-this.session={
-userId:id,
-email:e
-};
-
-NOVA.set("session",this.session);
-
-modules.db.save();
-
-this.hide();
-
-NOVA.go("home");
-
-NOVA.toast(id===NOVA_OWNER_ID
-?"Owner account created ✓"
-:"Account created 🚀")
-},
-
-async login(){
-
-let e=$("loginEmail").value.trim().toLowerCase();
-let p=$("loginPass").value;
-
-$("authError").textContent="";
-
-let a=this.accounts.find(x=>x.email===e);
-
-if(!a)
-return $("authError").textContent=
-"Account not found.";
-
-let h=await this.derive(
-p,
-a.salt
-);
-
-if(h!==a.passwordHash)
-return $("authError").textContent=
-"Wrong password.";
-
-this.session={
-userId:a.userId,
-email:a.email
-};
-
-NOVA.set("session",this.session);
-
-let u=modules.db.user(a.userId);
-
-if(u)
-u.online=true;
-
-modules.db.save();
-
-this.hide();
-
-NOVA.go("home");
-
-NOVA.toast("Welcome back ✨")
 },
 
 show(){
@@ -4655,7 +4462,6 @@ this.show()
   };
 
   /* Registration uses Firebase Authentication; no fake/local accounts. */
-  auth.accounts=[];
   auth.session=null;
 
   auth.register=async function(){
@@ -4729,7 +4535,7 @@ this.show()
     }catch(ex){
       console.error(ex);
       let msg=ex?.code||"";
-      if(msg==="auth/email-already-in-use")msg="Email already in use.";
+      if(msg==="auth/email-already-in-use")msg="Email already exists in Firebase. Delete the old Firebase Authentication account first, then register again.";
       else if(msg==="auth/invalid-email")msg="Invalid email address.";
       else if(msg==="auth/weak-password")msg="Password must be at least 6 characters.";
       else msg=ex?.message||"Account creation failed.";
