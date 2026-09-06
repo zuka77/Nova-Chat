@@ -774,6 +774,16 @@ background:#20202b;color:#fff;font-weight:800
 width:8px;height:8px;border-radius:50%;
 background:var(--green);display:inline-block
 }
+
+/* NOVA verified badge */
+.verifiedBadge{
+display:inline-flex;width:17px;height:17px;margin-left:5px;
+vertical-align:-3px;align-items:center;justify-content:center;flex:none
+}
+.verifiedBadge svg{width:17px;height:17px;display:block}
+.verifiedBadge.sm{width:15px;height:15px;margin-left:4px;vertical-align:-2px}
+.verifiedBadge.sm svg{width:15px;height:15px}
+.verifiedName{display:inline-flex;align-items:center;min-width:0}
 .hidden{display:none!important}
 .smallText{font-size:11px;color:var(--muted)}
 @media(min-width:681px){
@@ -909,6 +919,9 @@ width:min(680px,100vw)
 
 <script>
 const $=id=>document.getElementById(id);
+
+/* The first NOVA account has id "me" and is the Owner. */
+const NOVA_OWNER_ID="me";
 
 const NOVA={
 state:{
@@ -1203,7 +1216,24 @@ p.savedBy??=[];
 p.reposts??=0;
 });
 
+/* Owner always has the official badge. */
+let owner=this.user(NOVA_OWNER_ID);
+if(owner) owner.verified=true;
+
 this.save()
+},
+
+isOwner(id){
+return String(id||this.me()?.id||"")===NOVA_OWNER_ID
+},
+
+setVerified(id,value){
+if(!this.isOwner())return false;
+let u=this.user(id);
+if(!u||u.id===NOVA_OWNER_ID)return false;
+u.verified=!!value;
+this.save();
+return true
 },
 
 save(){
@@ -1326,6 +1356,18 @@ return msg
 };
 
 const ui={
+verified(u,cl=""){
+if(!u?.verified&&u?.id!==NOVA_OWNER_ID)return"";
+return`<span class="verifiedBadge ${cl}" title="Verified" aria-label="Verified">
+<svg viewBox="0 0 24 24" aria-hidden="true">
+<path fill="#1877F2" d="M12 2.7l2.15 1.32 2.5-.05 1.15 2.22 2.2 1.2-.08 2.5L21.2 12l-1.28 2.11.08 2.5-2.2 1.2-1.15 2.22-2.5-.05L12 21.3l-2.15-1.32-2.5.05-1.15-2.22-2.2-1.2.08-2.5L2.8 12l1.28-2.11-.08-2.5 2.2-1.2 1.15-2.22 2.5.05L12 2.7Z"/>
+<path d="m8.2 12.2 2.35 2.35 5.25-5.25" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></span>`
+},
+name(u,cl=""){
+if(!u)return`<span class="verifiedName">User</span>`;
+return`<span class="verifiedName ${cl}">${NOVA.esc(u.name||"User")}${this.verified(u)}</span>`
+},
 avatar(u,cl=""){
 if(!u)return`<div class="avatar ${cl}">?</div>`;
 
@@ -1342,7 +1384,7 @@ head(u,p){
 return`<div class="postHead" data-user="${u.id}">
 ${this.avatar(u)}
 <div class="userInfo">
-<div class="name">${NOVA.esc(u.name)}</div>
+<div class="name">${ui.name(u)}</div>
 <div class="handle">${NOVA.esc(u.handle)}</div>
 </div>
 <div class="time">${p?NOVA.time(p.created):""}</div>
@@ -1436,7 +1478,7 @@ muted playsinline preload="metadata"></video>`
 }
 </div>
 </div>
-${NOVA.esc((u?.name||"User").split(" ")[0])}
+${NOVA.esc((u?.name||"User").split(" ")[0])}${ui.verified(u)}
 </button>`
 
 }).join("")}
@@ -1582,7 +1624,7 @@ $("viewerIn").innerHTML=`
 ${ui.avatar(u,"sm")}
 
 <div>
-<b>${NOVA.esc(u.name)}</b>
+<b>${ui.name(u)}</b>
 <div class="smallText">${NOVA.time(s.created)}</div>
 </div>
 
@@ -1626,7 +1668,7 @@ ${(s.replies||[]).map(r=>{
 let x=modules.db.user(r.user);
 
 return`<div class="storyReply">
-<b>${NOVA.esc(x?.name||"User")}</b>
+<b>${ui.name(x)}</b>
 ${NOVA.esc(r.text)}
 </div>`
 
@@ -2039,9 +2081,7 @@ ${NOVA.time(p.created)} · ${p.likes.length} likes
 
 ${p.comments.length
 ?`<div class="commentPreview">
-<b>${NOVA.esc(
-d.user(p.comments.at(-1).user)?.name||"User"
-)}</b>
+<b>${ui.name(d.user(p.comments.at(-1).user))}</b>
 ${NOVA.esc(p.comments.at(-1).text)}
 </div>`
 :""}
@@ -2208,7 +2248,7 @@ return`<div class="comment">
 ${ui.avatar(u,"sm")}
 
 <div class="commentBody">
-<b>${NOVA.esc(u?.name||"User")}</b>
+<b>${ui.name(u)}</b>
 <div>${NOVA.esc(c.text)}</div>
 <div class="commentTime">
 ${NOVA.time(c.time)}
@@ -2431,7 +2471,7 @@ data-user="${u.id}">
 ${ui.avatar(u,"sm")}
 
 <div class="userInfo">
-<div class="name">${NOVA.esc(u.name)}</div>
+<div class="name">${ui.name(u)}</div>
 <div class="handle">${NOVA.esc(u.handle)}</div>
 </div>
 
@@ -2492,7 +2532,7 @@ data-user="${u.id}">
 ${ui.avatar(u,"sm")}
 
 <div class="userInfo">
-<div class="name">${NOVA.esc(u.name)}</div>
+<div class="name">${ui.name(u)}</div>
 <div class="handle">${NOVA.esc(u.bio)}</div>
 </div>
 
@@ -2567,6 +2607,49 @@ data-action="createStory">
 }
 };
 
+modules.owner={
+open(){
+if(!modules.db.isOwner()){
+NOVA.toast("Owner only");
+return
+}
+this.render()
+},
+render(){
+let d=modules.db;
+if(!d.isOwner())return;
+NOVA.modal("Verified badges",`
+<div class="smallText" style="margin-bottom:12px">
+Give or remove the official blue badge from NOVA users.
+</div>
+<div class="card" style="margin:0">
+${d.users.filter(u=>u.id!==NOVA_OWNER_ID).map(u=>`
+<div class="people">
+${ui.avatar(u,"sm")}
+<div class="userInfo">
+<div class="name">${ui.name(u)}</div>
+<div class="handle">${NOVA.esc(u.handle||"")}</div>
+</div>
+<button class="btn small ${u.verified?"secondary":""}" data-verified-user="${u.id}">
+${u.verified?"Remove":"Give badge"}
+</button>
+</div>
+`).join("")||`<div class="empty">No other users yet.</div>`}
+</div>
+`)
+},
+toggle(id){
+if(!modules.db.isOwner())return NOVA.toast("Owner only");
+let u=modules.db.user(id);
+if(!u)return;
+let next=!u.verified;
+if(modules.db.setVerified(id,next)){
+this.render();
+NOVA.toast(next?"Verified badge added ✓":"Verified badge removed");
+}
+}
+};
+
 modules.profile={
 
 render(){
@@ -2612,7 +2695,7 @@ $("profile").innerHTML=`
 ${ui.avatar(u,"big")}
 
 <div class="profileName">
-${NOVA.esc(u.name)}
+${ui.name(u)}
 </div>
 
 <div class="handle">
@@ -2839,7 +2922,7 @@ ${ui.avatar(u)}
 
 <div class="chatMain">
 
-<b>${NOVA.esc(u.name)}</b>
+<b>${ui.name(u)}</b>
 
 <div>
 ${NOVA.esc(
@@ -2916,7 +2999,7 @@ ${ui.avatar(u,"sm")}
 
 <div>
 
-<b>${NOVA.esc(u.name)}</b>
+<b>${ui.name(u)}</b>
 
 <div class="handle">
 
@@ -3699,9 +3782,7 @@ ${ui.avatar(u,"sm")}
 
 <div class="commentBody">
 
-<b>${NOVA.esc(
-u?.name||"User"
-)}</b>
+<b>${ui.name(u)}</b>
 
 <div>
 ${NOVA.esc(n.text)}
@@ -3821,6 +3902,19 @@ data-action="switchAccount">
 </div>
 
 </div>
+
+${d.isOwner()?`
+<div class="card">
+<div class="option" data-action="ownerVerified">
+<div class="icon">✓</div>
+<div class="optionMain">
+<b>Verified badges</b>
+<span>Give or remove the blue badge</span>
+</div>
+›
+</div>
+</div>
+`:""}
 
 <div class="card">
 
@@ -4056,7 +4150,8 @@ avatar:"",
 followers:0,
 following:0,
 followingUsers:[],
-online:true
+online:true,
+verified:id===NOVA_OWNER_ID
 })
 
 }
@@ -4400,6 +4495,9 @@ auth.logout();
 if(x==="switchAccount")
 auth.switch();
 
+if(x==="ownerVerified")
+modules.owner.open();
+
 if(x==="reset"){
 
 if(confirm("Delete all NOVA local data?")){
@@ -4555,6 +4653,12 @@ rr.dataset.id,
 rr.dataset.reaction
 );
 
+return
+}
+
+let vb=e.target.closest("[data-verified-user]");
+if(vb){
+modules.owner.toggle(vb.dataset.verifiedUser);
 return
 }
 
@@ -5162,6 +5266,12 @@ document.querySelectorAll("audio")
 /* APP BOOT */
 
 modules.db.init();
+
+/* Keep the Owner badge enabled on every boot. */
+if(modules.db.user(NOVA_OWNER_ID)){
+modules.db.user(NOVA_OWNER_ID).verified=true;
+modules.db.save();
+}
 
 if(
 auth.session&&
