@@ -4260,43 +4260,121 @@ this.show()
 
 /* =========================================================
    NOVA ONLINE PRODUCTION BACKEND
-   Firebase Authentication + Firestore replace local demo storage.
+   Firebase Authentication + Firestore production auth/data layer.
    ========================================================= */
 (function(){
-  const F=window.NOVA_FIREBASE;if(!F||!F.auth||!F.db)return;
-  const fAuth=F.auth,fdb=F.db;window.NOVA_ONLINE_READY=false;
-  const colDocs=async n=>{const s=await fdb.collection(n).get();return s.docs.map(d=>({__docId:d.id,...d.data()}));};
+  const F=window.NOVA_FIREBASE;
+  if(!F||!F.auth||!F.db)return;
+  const fAuth=F.auth,fdb=F.db;
+  let registrationInProgress=false;
+  window.NOVA_ONLINE_READY=false;
+
+  const colDocs=async n=>{
+    const s=await fdb.collection(n).get();
+    return s.docs.map(d=>({__docId:d.id,...d.data()}));
+  };
   const clean=o=>{const x={...o};delete x.__docId;return x;};
-  const writeChunks=async ops=>{for(let i=0;i<ops.length;i+=450){const b=fdb.batch();ops.slice(i,i+450).forEach(fn=>fn(b));await b.commit();}};
+  const writeChunks=async ops=>{
+    for(let i=0;i<ops.length;i+=450){
+      const b=fdb.batch();
+      ops.slice(i,i+450).forEach(fn=>fn(b));
+      await b.commit();
+    }
+  };
   const onlineNow=u=>!!u.lastSeen&&(Date.now()-Number(u.lastSeen)<90000);
+  const friendlyError=err=>{
+    const code=String(err?.code||'').replace('auth/','');
+    const map={
+      'email-already-in-use':'Email is already registered.',
+      'invalid-email':'Invalid email address.',
+      'weak-password':'Password must be at least 6 characters.',
+      'invalid-credential':'Wrong email or password.',
+      'wrong-password':'Wrong email or password.',
+      'user-not-found':'Wrong email or password.',
+      'network-request-failed':'Network error. Check your internet connection.',
+      'operation-not-allowed':'Email/password sign-in is not enabled in Firebase Console.'
+    };
+    return map[code]||String(err?.message||'Something went wrong.');
+  };
 
   modules.db.init=async function(){
     this.users=[];this.posts=[];this.stories=[];this.messages=[];this.notifications=[];
     this.settings={notifications:true,online:true,autoplay:true,theme:'dark'};this.chats={};this.ownerUid=null;
-    const [users,posts,stories,ownerSnap]=await Promise.all([colDocs('users'),colDocs('posts'),colDocs('stories'),fdb.doc('config/owner').get()]);
-    this.users=users.map(u=>({...u,id:u.id||u.__docId,firebaseUid:u.firebaseUid||u.__docId,followers:Number(u.followers||0),following:Number(u.following||0),followingUsers:Array.isArray(u.followingUsers)?u.followingUsers:[],verified:!!u.verified,online:onlineNow(u)}));
-    this.posts=posts.map(p=>({...p,user:p.user===this.ownerUid?NOVA_OWNER_ID:p.user}));this.stories=stories.map(x=>({...x,user:x.user===this.ownerUid?NOVA_OWNER_ID:x.user,reactions:x.reactions||{},replies:x.replies||[]}));
-    this.posts.forEach(p=>{p.likes??=[];p.comments??=[];p.reactions??={};p.savedBy??=[];p.reposts??=0;});
+
+    const users=await colDocs('users');
+    this.users=users.map(u=>({
+      ...u,
+      id:u.id||u.__docId,
+      firebaseUid:u.firebaseUid||u.__docId,
+      followers:Number(u.followers||0),
+      following:Number(u.following||0),
+      followingUsers:Array.isArray(u.followingUsers)?u.followingUsers:[],
+      verified:!!u.verified,
+      online:onlineNow(u)
+    }));
+
+    const [posts,stories,ownerSnap]=await Promise.all([
+      colDocs('posts'),colDocs('stories'),fdb.doc('config/owner').get()
+    ]);
     this.ownerUid=ownerSnap.exists?ownerSnap.data().ownerUid:null;
-    if(this.ownerUid){const o=this.users.find(u=>u.firebaseUid===this.ownerUid);if(o){o.id=NOVA_OWNER_ID;o.owner=true;o.verified=true;}}
+    this.posts=posts.map(p=>({...p,user:p.user===this.ownerUid?NOVA_OWNER_ID:p.user}));
+    this.stories=stories.map(x=>({...x,user:x.user===this.ownerUid?NOVA_OWNER_ID:x.user,reactions:x.reactions||{},replies:x.replies||[]}));
+    this.posts.forEach(p=>{p.likes??=[];p.comments??=[];p.reactions??={};p.savedBy??=[];p.reposts??=0;});
+
+    if(this.ownerUid){
+      const o=this.users.find(u=>u.firebaseUid===this.ownerUid);
+      if(o){o.id=NOVA_OWNER_ID;o.owner=true;o.verified=true;}
+    }
+
     const cur=fAuth.currentUser;
     if(cur){
-      const cs=await fdb.collection('chats').where('participants','array-contains',cur.uid).get();
-      cs.forEach(d=>{const x=d.data()||{};this.chats[d.id]=Array.isArray(x.messages)?x.messages:[];this.chats[d.id].forEach(m=>m.reactionBy??={});});
-      const [ns,ss]=await Promise.all([fdb.doc(`notifications/${cur.uid}`).get(),fdb.doc(`settings/${cur.uid}`).get()]);
-      if(ns.exists)this.notifications=Array.isArray(ns.data().items)?ns.data().items:[];
-      if(ss.exists)this.settings={...this.settings,...ss.data()};
+      try{
+        const cs=await fdb.collection('chats').where('participants','array-contains',cur.uid).get();
+        cs.forEach(d=>{
+          const x=d.data()||{};
+          this.chats[d.id]=Array.isArray(x.messages)?x.messages:[];
+          this.chats[d.id].forEach(m=>m.reactionBy??={});
+        });
+      }catch(e){
+        console.warn('Chat sync skipped:',e);
+      }
+      try{
+        const ns=await fdb.doc(`notifications/${cur.uid}`).get();
+        if(ns.exists)this.notifications=Array.isArray(ns.data().items)?ns.data().items:[];
+      }catch(e){console.warn('Notification sync skipped:',e);}
+      try{
+        const ss=await fdb.doc(`settings/${cur.uid}`).get();
+        if(ss.exists)this.settings={...this.settings,...ss.data()};
+      }catch(e){console.warn('Settings sync skipped:',e);}
     }
-    this.refreshPresence();window.NOVA_ONLINE_READY=true;
+    this.refreshPresence();
+    window.NOVA_ONLINE_READY=true;
   };
+
   modules.db.refreshPresence=function(){this.users.forEach(u=>u.online=onlineNow(u));};
-  modules.db.isOwner=function(id){const u=this.user(id||this.me()?.id),cur=fAuth.currentUser;return !!u&&u.id===NOVA_OWNER_ID&&!!cur&&!!this.ownerUid&&cur.uid===this.ownerUid;};
-  modules.db.setVerified=async function(id,value){if(!this.isOwner())return false;const u=this.user(id);if(!u||u.id===NOVA_OWNER_ID)return false;u.verified=!!value;try{await fdb.collection('users').doc(u.firebaseUid||id).set({verified:u.verified},{merge:true});return true}catch(e){console.error(e);NOVA.toast('Could not update badge');return false;}};
+  modules.db.isOwner=function(id){
+    const u=this.user(id||this.me()?.id),cur=fAuth.currentUser;
+    return !!u&&u.id===NOVA_OWNER_ID&&!!cur&&!!this.ownerUid&&cur.uid===this.ownerUid;
+  };
+  modules.db.setVerified=async function(id,value){
+    if(!this.isOwner())return false;
+    const u=this.user(id);
+    if(!u||u.id===NOVA_OWNER_ID)return false;
+    u.verified=!!value;
+    try{
+      await fdb.collection('users').doc(u.firebaseUid||id).set({verified:u.verified},{merge:true});
+      return true;
+    }catch(e){console.error(e);NOVA.toast('Could not update badge');return false;}
+  };
   modules.db.save=async function(){
     const cur=fAuth.currentUser;if(!cur)return;
     try{
       const me=this.me();
-      const userOps=this.users.map(u=>batch=>{const uid=u.firebaseUid||u.__docId;if(!uid||u.id===NOVA_OWNER_ID&&uid!==cur.uid)return;batch.set(fdb.collection('users').doc(uid),clean({...u,lastSeen:u.id===me?.id?Date.now():u.lastSeen||null}),{merge:true});});
+      const userOps=this.users.map(u=>batch=>{
+        const uid=u.firebaseUid||u.__docId;
+        if(!uid||u.id===NOVA_OWNER_ID&&uid!==cur.uid)return;
+        batch.set(fdb.collection('users').doc(uid),clean({...u,lastSeen:u.id===me?.id?Date.now():u.lastSeen||null}),{merge:true});
+      });
       await writeChunks(userOps);
       const ownerUid=this.ownerUid;
       const postOps=this.posts.map(p=>b=>{const data=clean(p);if(data.user===NOVA_OWNER_ID&&ownerUid)data.user=ownerUid;b.set(fdb.collection('posts').doc(p.id),data,{merge:true});});
@@ -4311,20 +4389,118 @@ this.show()
   modules.db.sendMessage=function(to,obj){const me=this.me()?.id;if(!me||!to)return null;const arr=this.chat(me,to);const msg={id:NOVA.uid('msg'),from:me,to,time:Date.now(),kind:'text',text:'',replyTo:null,reactionBy:{},...obj};arr.push(msg);this.save();return msg;};
   modules.db.me=function(){const id=auth.session?.userId,cur=fAuth.currentUser;return this.user(id)||(cur&&this.users.find(u=>u.firebaseUid===cur.uid));};
 
-  auth.register=async function(){
-    const n=$('regName').value.trim(),e=$('regEmail').value.trim().toLowerCase(),p=$('regPass').value,p2=$('regPass2').value;let h=$('regHandle').value.trim();const ownerId=$('regOwnerId').value.trim();$('authError').textContent='';
-    if(n.length<2)return $('authError').textContent='Enter your name.';if(!e.includes('@'))return $('authError').textContent='Enter a valid email.';if(p.length<6)return $('authError').textContent='Password must be at least 6 characters.';if(p!==p2)return $('authError').textContent='Passwords do not match.';
-    if(!h)h='@'+n.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,14)+Math.floor(Math.random()*90+10);if(!h.startsWith('@'))h='@'+h;
-    let ownerRequested=false;if(ownerId){const hash=await NOVA.hashText(ownerId);if(hash!==NOVA_OWNER_CODE_HASH)return $('authError').textContent='Invalid Owner ID.';const ex=await fdb.doc('config/owner').get();if(ex.exists)return $('authError').textContent='The NOVA Owner account is already registered.';ownerRequested=true;}
-    let cred;try{cred=await fAuth.createUserWithEmailAndPassword(e,p);}catch(err){return $('authError').textContent=err.message.replace('Firebase: ','').replace(/\s*\(auth\/.*\)\.?$/,'');}
-    const uid=cred.user.uid,modelId=ownerRequested?NOVA_OWNER_ID:uid,profile={id:modelId,firebaseUid:uid,name:n,handle:h,bio:'New on NOVA 🚀',avatar:'',followers:0,following:0,followingUsers:[],online:true,lastSeen:Date.now(),verified:ownerRequested,owner:ownerRequested,created:Date.now()};
-    try{await fdb.collection('users').doc(uid).set(profile);if(ownerRequested)await fdb.doc('config/owner').set({ownerUid:uid,created:Date.now()});auth.session={userId:modelId,email:e,firebaseUid:uid};NOVA.set('session',auth.session);auth.hide();NOVA.go('home');NOVA.toast(ownerRequested?'Owner account created ✓':'Account created 🚀');}catch(err){console.error(err);$('authError').textContent='Account created, but profile sync failed. Please log in again.';}
-  };
-  auth.login=async function(){const e=$('loginEmail').value.trim().toLowerCase(),p=$('loginPass').value;$('authError').textContent='';try{await fAuth.signInWithEmailAndPassword(e,p);}catch(err){$('authError').textContent=err.message.replace('Firebase: ','').replace(/\s*\(auth\/.*\)\.?$/,'');}};
-  auth.logout=async function(){const u=modules.db.me(),uid=fAuth.currentUser?.uid;if(u&&uid)await fdb.collection('users').doc(uid).set({lastSeen:Date.now()-120000,online:false},{merge:true}).catch(()=>{});await fAuth.signOut();auth.session=null;NOVA.set('session',null);auth.show();};
+  async function ensureProfile(user, fallback={}){
+    const uid=user.uid;
+    let snap=await fdb.collection('users').doc(uid).get();
+    if(snap.exists)return {...snap.data(),firebaseUid:uid};
+    const baseName=(fallback.name||user.displayName||((user.email||'user').split('@')[0])||'NOVA User').trim();
+    const safeName=baseName.length>=2?baseName:'NOVA User';
+    let handle=fallback.handle||'@'+safeName.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,14)+Math.floor(Math.random()*90+10);
+    if(!handle.startsWith('@'))handle='@'+handle;
+    const profile={
+      id:uid,firebaseUid:uid,name:safeName,handle,
+      bio:fallback.bio||'New on NOVA 🚀',avatar:fallback.avatar||'',
+      followers:Number(fallback.followers||0),following:Number(fallback.following||0),
+      followingUsers:Array.isArray(fallback.followingUsers)?fallback.followingUsers:[],
+      online:true,lastSeen:Date.now(),verified:false,owner:false,created:Date.now()
+    };
+    await fdb.collection('users').doc(uid).set(profile);
+    return profile;
+  }
 
-  fAuth.onAuthStateChanged(async user=>{try{if(user){await modules.db.init();const profile=modules.db.users.find(u=>u.firebaseUid===user.uid);if(!profile){await fAuth.signOut();return;}auth.session={userId:profile.id,email:user.email||'',firebaseUid:user.uid};NOVA.set('session',auth.session);profile.lastSeen=Date.now();profile.online=true;await fdb.collection('users').doc(user.uid).set({lastSeen:profile.lastSeen,online:true},{merge:true});auth.hide();NOVA.go('home');}else{auth.session=null;NOVA.set('session',null);window.NOVA_ONLINE_READY=false;auth.show();auth.render('login');}}catch(e){console.error(e);$('authError').textContent='Could not connect to NOVA cloud data.';auth.show();}});
-  setInterval(()=>{const cur=fAuth.currentUser,me=modules.db.me?.();if(!cur||!me)return;me.lastSeen=Date.now();me.online=true;fdb.collection('users').doc(cur.uid).set({lastSeen:me.lastSeen,online:true},{merge:true}).catch(()=>{});modules.db.refreshPresence();},30000);
+  auth.register=async function(){
+    const n=$('regName').value.trim(),e=$('regEmail').value.trim().toLowerCase(),p=$('regPass').value,p2=$('regPass2').value;
+    let h=$('regHandle').value.trim();const ownerId=$('regOwnerId').value.trim();$('authError').textContent='';
+    if(n.length<2)return $('authError').textContent='Enter your name.';
+    if(!e.includes('@'))return $('authError').textContent='Enter a valid email.';
+    if(p.length<6)return $('authError').textContent='Password must be at least 6 characters.';
+    if(p!==p2)return $('authError').textContent='Passwords do not match.';
+    if(!h)h='@'+n.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,14)+Math.floor(Math.random()*90+10);
+    if(!h.startsWith('@'))h='@'+h;
+
+    let ownerRequested=false;
+    if(ownerId){
+      const hash=await NOVA.hashText(ownerId);
+      if(hash!==NOVA_OWNER_CODE_HASH)return $('authError').textContent='Invalid Owner ID.';
+      const ex=await fdb.doc('config/owner').get();
+      if(ex.exists)return $('authError').textContent='The NOVA Owner account is already registered.';
+      ownerRequested=true;
+    }
+
+    $('authError').textContent='Creating account…';
+    let cred;
+    registrationInProgress=true;
+    try{cred=await fAuth.createUserWithEmailAndPassword(e,p);}catch(err){registrationInProgress=false;return $('authError').textContent=friendlyError(err);}
+    const uid=cred.user.uid,modelId=ownerRequested?NOVA_OWNER_ID:uid;
+    try{
+      await cred.user.updateProfile({displayName:n});
+      const profile={id:modelId,firebaseUid:uid,name:n,handle:h,bio:'New on NOVA 🚀',avatar:'',followers:0,following:0,followingUsers:[],online:true,lastSeen:Date.now(),verified:ownerRequested,owner:ownerRequested,created:Date.now()};
+      await fdb.collection('users').doc(uid).set(profile);
+      if(ownerRequested)await fdb.doc('config/owner').set({ownerUid:uid,created:Date.now()});
+      auth.session={userId:modelId,email:e,firebaseUid:uid};
+      NOVA.set('session',auth.session);
+      auth.hide();
+      await modules.db.init();
+      NOVA.go('home');
+      registrationInProgress=false;
+      NOVA.toast(ownerRequested?'Owner account created ✓':'Account created 🚀');
+    }catch(err){
+      registrationInProgress=false;
+      console.error('Profile creation failed:',err);
+      $('authError').textContent='Account was created, but NOVA profile could not be saved. Make sure Firestore rules are deployed, then press Log in.';
+      return;
+    }
+  };
+
+  auth.login=async function(){
+    const e=$('loginEmail').value.trim().toLowerCase(),p=$('loginPass').value;
+    $('authError').textContent='';
+    if(!e||!p)return $('authError').textContent='Enter your email and password.';
+    $('authError').textContent='Logging in…';
+    try{await fAuth.signInWithEmailAndPassword(e,p);}
+    catch(err){$('authError').textContent=friendlyError(err);}
+  };
+
+  auth.logout=async function(){
+    const u=modules.db.me(),uid=fAuth.currentUser?.uid;
+    if(u&&uid)await fdb.collection('users').doc(uid).set({lastSeen:Date.now()-120000,online:false},{merge:true}).catch(()=>{});
+    await fAuth.signOut();auth.session=null;NOVA.set('session',null);auth.show();
+  };
+
+  fAuth.onAuthStateChanged(async user=>{
+    try{
+      if(!user){
+        auth.session=null;NOVA.set('session',null);window.NOVA_ONLINE_READY=false;auth.show();auth.render('login');return;
+      }
+      if(registrationInProgress)return;
+      const authError=$('authError');
+      if(authError)authError.textContent='';
+      let profile=await ensureProfile(user);
+      await modules.db.init();
+      profile=modules.db.users.find(u=>u.firebaseUid===user.uid)||profile;
+      if(profile.id===user.uid){
+        profile.firebaseUid=user.uid;
+      }
+      auth.session={userId:profile.id,email:user.email||'',firebaseUid:user.uid};
+      NOVA.set('session',auth.session);
+      const now=Date.now();
+      profile.lastSeen=now;profile.online=true;
+      await fdb.collection('users').doc(user.uid).set({lastSeen:now,online:true},{merge:true});
+      auth.hide();NOVA.go('home');
+    }catch(e){
+      console.error('NOVA auth/profile boot failed:',e);
+      $('authError').textContent='Could not load your NOVA profile. Deploy the Firestore rules and try again.';
+      auth.show();
+    }
+  });
+
+  setInterval(()=>{
+    const cur=fAuth.currentUser,me=modules.db.me?.();
+    if(!cur||!me)return;
+    me.lastSeen=Date.now();me.online=true;
+    fdb.collection('users').doc(cur.uid).set({lastSeen:me.lastSeen,online:true},{merge:true}).catch(()=>{});
+    modules.db.refreshPresence();
+  },30000);
 })();
 
 NOVA.render=function(s){
