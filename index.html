@@ -799,6 +799,129 @@ width:min(680px,100vw)
 }
 }
 </style>
+
+<!-- NOVA: Firebase + Cloudinary integration -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import {
+    getAuth,
+    signInAnonymously,
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+  import {
+    getFirestore,
+    collection,
+    doc,
+    setDoc,
+    addDoc,
+    getDoc,
+    getDocs,
+    updateDoc,
+    deleteDoc,
+    onSnapshot,
+    query,
+    orderBy,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+  import {
+    getAnalytics
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCmMhOMz_KZi7aJ6NmubkMDj7gmMW0B-m4",
+    authDomain: "nova-chat-5bf77.firebaseapp.com",
+    projectId: "nova-chat-5bf77",
+    storageBucket: "nova-chat-5bf77.firebasestorage.app",
+    messagingSenderId: "664196400473",
+    appId: "1:664196400473:web:addae6fe9c1c6b83813848",
+    measurementId: "G-T64WQ1CR9L"
+  };
+
+  const NOVA_FIREBASE_APP = initializeApp(firebaseConfig);
+  const NOVA_FIREBASE_AUTH = getAuth(NOVA_FIREBASE_APP);
+  const NOVA_FIRESTORE = getFirestore(NOVA_FIREBASE_APP);
+
+  try {
+    getAnalytics(NOVA_FIREBASE_APP);
+  } catch (e) {
+    console.warn("NOVA Firebase Analytics unavailable:", e);
+  }
+
+  window.NOVA_FIREBASE = {
+    app: NOVA_FIREBASE_APP,
+    auth: NOVA_FIREBASE_AUTH,
+    db: NOVA_FIRESTORE,
+    firestore: {
+      collection,
+      doc,
+      setDoc,
+      addDoc,
+      getDoc,
+      getDocs,
+      updateDoc,
+      deleteDoc,
+      onSnapshot,
+      query,
+      orderBy,
+      serverTimestamp
+    }
+  };
+
+  // Cloudinary unsigned upload configuration
+  window.NOVA_CLOUDINARY = {
+    cloudName: "tsylue7r",
+    uploadPreset: "nova_chat",
+    uploadUrl: "https://api.cloudinary.com/v1_1/tsylue7r/auto/upload"
+  };
+
+  // Reusable photo/video uploader. Existing UI can call:
+  // await window.NOVA_UPLOAD_TO_CLOUDINARY(file)
+  window.NOVA_UPLOAD_TO_CLOUDINARY = async function(file) {
+    if (!file) throw new Error("No file selected.");
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", window.NOVA_CLOUDINARY.uploadPreset);
+
+    const response = await fetch(window.NOVA_CLOUDINARY.uploadUrl, {
+      method: "POST",
+      body: formData
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error("Cloudinary upload failed: " + message);
+    }
+
+    const result = await response.json();
+
+    return {
+      url: result.secure_url || result.url,
+      publicId: result.public_id || "",
+      resourceType: result.resource_type || "",
+      format: result.format || "",
+      width: result.width || null,
+      height: result.height || null,
+      duration: result.duration || null,
+      bytes: result.bytes || null
+    };
+  };
+
+  // Firebase anonymous connection is only a connectivity bridge.
+  // Existing NOVA authentication/data functions are intentionally preserved.
+  onAuthStateChanged(NOVA_FIREBASE_AUTH, user => {
+    window.NOVA_FIREBASE_USER = user || null;
+    window.dispatchEvent(new CustomEvent("nova-firebase-ready", {
+      detail: { user }
+    }));
+  });
+
+  signInAnonymously(NOVA_FIREBASE_AUTH).catch(error => {
+    console.warn("NOVA Firebase anonymous sign-in:", error);
+  });
+</script>
+<!-- END NOVA: Firebase + Cloudinary integration -->
+
 </head>
 
 <body>
