@@ -981,8 +981,7 @@ const $=id=>document.getElementById(id);
 /* NOVA Owner */
 const NOVA_OWNER_ID="me";
 /* Owner activation code is never shown in the UI. Keep this code private. */
-const NOVA_TEMP_OWNER_ID="NOVA-OWNER-6Q9V2M8X";
-const NOVA_OWNER_CODE_HASH="5ffc4a3d8b48f4ab3ed65a924e2723e91b8cf9674630ca7f74aa4a29fff0fb25";
+const NOVA_OWNER_CODE_HASH="5abb03d712aaad79c54561d73d0c013f3d55a287ae6a61e0f4ad4a974744e263";
 
 const NOVA={
 state:{
@@ -1277,21 +1276,20 @@ p.savedBy??=[];
 p.reposts??=0;
 });
 
-/* Owner always has the official badge. */
-let owner=this.user(NOVA_OWNER_ID);
-if(owner) owner.verified=true;
-
 this.save()
 },
 
 isOwner(id){
-return String(id||this.me()?.id||"")===NOVA_OWNER_ID
+  const target=String(id||this.me()?.id||"");
+  const fu=window.NOVA_FIREBASE?.auth?.currentUser;
+  const mapped=window.NOVA_OWNER_UID||"";
+  return !!fu && (target===mapped && fu.uid===mapped);
 },
 
 setVerified(id,value){
 if(!this.isOwner())return false;
 let u=this.user(id);
-if(!u||u.id===NOVA_OWNER_ID)return false;
+if(!u||u.id===window.NOVA_OWNER_UID)return false;
 u.verified=!!value;
 this.save();
 return true
@@ -1418,7 +1416,7 @@ return msg
 
 const ui={
 verified(u,cl=""){
-if(!u?.verified&&u?.id!==NOVA_OWNER_ID)return"";
+if(!u?.verified&&u?.id!==window.NOVA_OWNER_UID)return"";
 return`<span class="verifiedBadge ${cl}" title="Verified" aria-label="Verified">
 <svg viewBox="0 0 24 24" aria-hidden="true">
 <path fill="#1877F2" d="M12 2.7l2.15 1.32 2.5-.05 1.15 2.22 2.2 1.2-.08 2.5L21.2 12l-1.28 2.11.08 2.5-2.2 1.2-1.15 2.22-2.5-.05L12 21.3l-2.15-1.32-2.5.05-1.15-2.22-2.2-1.2.08-2.5L2.8 12l1.28-2.11-.08-2.5 2.2-1.2 1.15-2.22 2.5.05L12 2.7Z"/>
@@ -2684,7 +2682,7 @@ NOVA.modal("Verified badges",`
 Give or remove the official blue badge from NOVA users.
 </div>
 <div class="card" style="margin:0">
-${d.users.filter(u=>u.id!==NOVA_OWNER_ID).map(u=>`
+${d.users.filter(u=>u.id!==window.NOVA_OWNER_UID).map(u=>`
 <div class="people">
 ${ui.avatar(u,"sm")}
 <div class="userInfo">
@@ -4093,7 +4091,7 @@ placeholder="Repeat password">
 <input id="regOwnerId"
 autocomplete="off"
 placeholder="Owner ID (optional)"
-value="NOVA-OWNER-6Q9V2M8X">
+>
 
 <div class="authHelp" style="margin-top:-6px">
 Leave Owner ID empty for a normal account. Only the private NOVA Owner ID activates the Owner account and verified badge.
@@ -4231,6 +4229,10 @@ this.show()
     ]);
 
     this.users=us.docs.map(d=>({id:d.id,...d.data()}));
+    try{
+      const ownerSnap=await fdb.collection("config").doc("owner").get();
+      window.NOVA_OWNER_UID=ownerSnap.exists?(ownerSnap.data().ownerUid||""):"";
+    }catch(e){window.NOVA_OWNER_UID="";}
     this.posts=ps.docs.map(d=>({__docId:d.id,...d.data()}));
     this.stories=ss.docs.map(d=>({__docId:d.id,...d.data()}));
 
@@ -4246,10 +4248,7 @@ this.show()
       s.replies??=[];
     });
 
-    const owner=this.user(NOVA_OWNER_ID);
-    if(owner) owner.verified=true;
-
-    const fu=fAuth.currentUser;
+        const fu=fAuth.currentUser;
     if(fu){
       await ensureProfile(fu);
       await this.loadPrivate(fu.uid);
@@ -4318,8 +4317,10 @@ this.show()
 
     watch(fdb.collection("users"),snap=>{
       this.users=snap.docs.map(d=>({id:d.id,...d.data()}));
-      const owner=this.user(NOVA_OWNER_ID);
-      if(owner)owner.verified=true;
+    });
+
+    watch(fdb.collection("config").doc("owner"),snap=>{
+      window.NOVA_OWNER_UID=snap.exists?(snap.data().ownerUid||""):"";
     });
 
     watch(fdb.collection("posts"),snap=>{
@@ -4364,14 +4365,6 @@ this.show()
     try{
       const batch=fdb.batch();
       batch.set(userDoc(me.id),clean(me),{merge:true});
-
-      const owner=this.user(NOVA_OWNER_ID);
-      if(owner && owner.id===me.id){
-        batch.set(fdb.collection("config").doc("owner"),{
-          ownerUid:fAuth.currentUser.uid,
-          updated:Date.now()
-        },{merge:true});
-      }
 
       const ns=this.notifications||[];
       batch.set(notifDoc(me.id),{items:ns.slice(0,100),updated:Date.now()},{merge:true});
@@ -4449,7 +4442,7 @@ this.show()
   modules.db.setVerified=async function(id,value){
     if(!this.isOwner())return false;
     const u=this.user(id);
-    if(!u||u.id===NOVA_OWNER_ID)return false;
+    if(!u||u.id===window.NOVA_OWNER_UID)return false;
     u.verified=!!value;
     try{
       await userDoc(id).set({verified:!!value},{merge:true});
@@ -4496,7 +4489,7 @@ this.show()
 
       await fu.updateProfile({displayName:n});
 
-      const id=isOwner?NOVA_OWNER_ID:fu.uid;
+      const id=fu.uid;
       const profile={
         id,
         name:n,
@@ -4507,18 +4500,11 @@ this.show()
         following:0,
         followingUsers:[],
         online:true,
-        verified:isOwner,
+        verified:false,
         created:Date.now()
       };
 
       await fdb.collection("users").doc(id).set(profile,{merge:true});
-
-      if(isOwner){
-        await fdb.collection("config").doc("owner").set({
-          ownerUid:fu.uid,
-          updated:Date.now()
-        },{merge:true});
-      }
 
       auth.session={userId:id,email:fu.email||e};
       modules.db.users=modules.db.users.filter(x=>x.id!==id);
@@ -4531,7 +4517,7 @@ this.show()
 
       auth.hide();
       NOVA.go("home");
-      NOVA.toast(isOwner?"Owner account created ✓":"Account created 🚀");
+      NOVA.toast(isOwner?"Account created. Add this Firebase UID to config/owner to activate Owner ✓":"Account created 🚀");
     }catch(ex){
       console.error(ex);
       let msg=ex?.code||"";
