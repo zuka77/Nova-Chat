@@ -1349,65 +1349,37 @@ saveChatCloud(key){
   if(!fAuth.currentUser||!key)return Promise.resolve(false);
   const parts=String(key).split("__");
   if(parts.length!==2||!parts.includes(fAuth.currentUser.uid))return Promise.resolve(false);
-  this._chatWriteQueue??={};
-  this._chatPending??={};
-  const localSnapshot=Array.isArray(this.chats[key])?this.chats[key].map(m=>clean(m)):[];
-  this._chatPending[key]=localSnapshot;
-  const run=async()=>{
-    const ref=fdb.collection("chats").doc(key);
-    try{
-      await fdb.runTransaction(async tx=>{
-        const snap=await tx.get(ref);
-        const remote=Array.isArray(snap.data()?.messages)?snap.data().messages:[];
-        const byId=new Map(remote.map(m=>[m.id,m]));
-        localSnapshot.forEach(m=>byId.set(m.id,m));
-        const messages=[...byId.values()].sort((a,b)=>(a.time||0)-(b.time||0));
-        tx.set(ref,{participants:parts,messages,updated:Date.now()},{merge:true});
-      });
-      if(this._chatPending[key]===localSnapshot)delete this._chatPending[key];
-      return true;
-    }catch(err){
-      console.error("NOVA chat cloud save failed:",err);
-      window.NOVA_ONLINE_ERROR=err?.message||String(err);
-      return false;
-    }
-  };
-  const prev=this._chatWriteQueue[key]||Promise.resolve();
-  const next=prev.catch(()=>{}).then(run);
-  this._chatWriteQueue[key]=next.finally(()=>{
-    if(this._chatWriteQueue[key]===next)this._chatWriteQueue[key]=Promise.resolve();
+  const ref=fdb.collection("chats").doc(key);
+  const messages=Array.isArray(this.chats[key])?this.chats[key].map(m=>clean(m)):[];
+  return ref.set({participants:parts, messages, updated:Date.now()},{merge:true}).then(()=>true).catch(err=>{
+    console.error("NOVA chat cloud save failed:",err);
+    window.NOVA_ONLINE_ERROR=err?.message||String(err);
+    return false;
   });
-  return next;
 },
 
 sendMessage(to,obj){
-
-let me=this.me()?.id;
-
-if(!me||!to)return null;
-
-let arr=this.chat(me,to);
-
-let msg={
-id:NOVA.uid("msg"),
-from:me,
-to,
-time:Date.now(),
-kind:"text",
-text:"",
-replyTo:null,
-reactionBy:{},
-...obj
-};
-
-msg.read=false;
-arr.push(msg);
-
-const key=this.chatKey(me,to);
-msg.cloudPromise=this.saveChatCloud(key);
-this.notifyUserCloud(to,"message",me,"sent you a message",{chat:me,messageId:msg.id});
-this.updateNotificationBadge();
-return msg
+  const me=this.me()?.id;
+  if(!me||!to||!fAuth.currentUser)return null;
+  const arr=this.chat(me,to);
+  const msg={id:NOVA.uid("msg"),from:me,to,time:Date.now(),kind:"text",text:"",replyTo:null,reactionBy:{},read:false,...obj};
+  arr.push(msg);
+  const key=this.chatKey(me,to);
+  const ref=fdb.collection("chats").doc(key);
+  const FV=window.firebase?.firestore?.FieldValue;
+  msg.cloudPromise=(FV?.arrayUnion ? ref.set({participants:key.split("__"),messages:FV.arrayUnion(clean(msg)),updated:Date.now()},{merge:true}) : this.saveChatCloud(key))
+    .then(()=>{
+      delete msg.cloudPromise;
+      return true;
+    })
+    .catch(err=>{
+      console.error("NOVA message send failed:",err);
+      window.NOVA_ONLINE_ERROR=err?.message||String(err);
+      return false;
+    });
+  this.notifyUserCloud(to,"message",me,"sent you a message",{chat:me,messageId:msg.id});
+  this.updateNotificationBadge();
+  return msg;
 }
 };
 
@@ -3447,8 +3419,15 @@ try{
   window.NOVA_FIREBASE?.db?.collection("chats").doc(key).set({typing:{[me]:false},updated:Date.now()},{merge:true}).catch(()=>{});
 }catch(_){}
 
-this.chat(id);
-
+const box=$("chatMessages");
+if(box){
+  const inputValue=input.value;
+  const caret=input.selectionStart;
+  box.insertAdjacentHTML("beforeend",modules.messages.message(msg,id));
+  input.value="";
+  requestAnimationFrame(()=>{try{input.focus({preventScroll:true});if(caret!=null)input.setSelectionRange(caret,caret)}catch(e){}});
+  modules.messages.scroll();
+}
 NOVA.toast("Sent ✓");
 },
 
@@ -4051,7 +4030,7 @@ this.show()
     for(let attempt=1;attempt<=4;attempt++){
       try{
         const controller=new AbortController();
-        const timer=setTimeout(()=>controller.abort(),45000);
+        const timer=setTimeout(()=>controller.abort(),60000);
         const fd=new FormData();
         fd.append("file",file); fd.append("upload_preset",window.NOVA_CLOUDINARY.uploadPreset);
         if(folder)fd.append("folder",folder);
@@ -4059,7 +4038,7 @@ this.show()
         clearTimeout(timer);
         const d=await r.json().catch(()=>({}));
         if(r.ok&&!d.error&&(d.secure_url||d.url))return d.secure_url||d.url;
-        throw new Error(d?.error?.message||"Upload unavailable");
+        throw new Error(d?.error?.message||`Cloudinary upload failed (${r.status})`);
       }catch(e){last=e;await new Promise(x=>setTimeout(x,700*attempt));}
     }
     console.error("NOVA upload retry exhausted",last);
@@ -4356,62 +4335,48 @@ this.show()
   modules.db.postLikeCloud=async function(id,liked){
     const uid=fAuth.currentUser?.uid; if(!uid)return false;
     const pref=fdb.collection("posts").doc(id);
+    const FV=window.firebase?.firestore?.FieldValue;
+    if(!FV)return false;
     try{
-      await fdb.runTransaction(async tx=>{
-        const snap=await tx.get(pref);
-        if(!snap.exists)throw new Error("Post not found");
-        const p=snap.data()||{};
-        let likes=Array.isArray(p.likes)?p.likes.filter(x=>x!==uid):[];
-        if(liked)likes.push(uid);
-        tx.update(pref,{likes:[...new Set(likes)]});
-      });
+      await pref.set({likes:liked?FV.arrayUnion(uid):FV.arrayRemove(uid)},{merge:true});
       return true;
-    }catch(e){console.error(e);return false;}
+    }catch(e){console.error("NOVA post like cloud failed:",e);return false;}
   };
 
   modules.db.postSaveCloud=async function(id,saved){
     const uid=fAuth.currentUser?.uid; if(!uid)return false;
     const pref=fdb.collection("posts").doc(id);
+    const FV=window.firebase?.firestore?.FieldValue;
+    if(!FV)return false;
     try{
-      await fdb.runTransaction(async tx=>{
-        const snap=await tx.get(pref); if(!snap.exists)throw new Error("Post not found");
-        const p=snap.data()||{};
-        let list=Array.isArray(p.savedBy)?p.savedBy.filter(x=>x!==uid):[];
-        if(saved)list.push(uid);
-        tx.update(pref,{savedBy:[...new Set(list)]});
-      });
+      await pref.set({savedBy:saved?FV.arrayUnion(uid):FV.arrayRemove(uid)},{merge:true});
       return true;
-    }catch(e){console.error(e);return false;}
+    }catch(e){console.error("NOVA post save cloud failed:",e);return false;}
   };
 
   modules.db.postReactionCloud=async function(id,type){
     const uid=fAuth.currentUser?.uid; if(!uid)return false;
     const pref=fdb.collection("posts").doc(id);
+    const FV=window.firebase?.firestore?.FieldValue;
+    if(!FV)return false;
     try{
-      await fdb.runTransaction(async tx=>{
-        const snap=await tx.get(pref); if(!snap.exists)throw new Error("Post not found");
-        const p=snap.data()||{}; const reactions={...(p.reactions||{})};
-        Object.keys(reactions).forEach(k=>{reactions[k]=(reactions[k]||[]).filter(x=>x!==uid);});
-        if(type)reactions[type]=[...(reactions[type]||[]),uid];
-        tx.update(pref,{reactions});
-      });
+      const updates={};
+      ["heart","laugh","wow","fire","like","sad","angry"].forEach(k=>{updates[`reactions.${k}`]=FV.arrayRemove(uid)});
+      if(type)updates[`reactions.${type}`]=FV.arrayUnion(uid);
+      await pref.set(updates,{merge:true});
       return true;
-    }catch(e){console.error(e);return false;}
+    }catch(e){console.error("NOVA post reaction cloud failed:",e);return false;}
   };
 
   modules.db.postCommentCloud=async function(id,comment){
     const uid=fAuth.currentUser?.uid; if(!uid||!comment)return false;
     const pref=fdb.collection("posts").doc(id);
+    const FV=window.firebase?.firestore?.FieldValue;
+    if(!FV)return false;
     try{
-      await fdb.runTransaction(async tx=>{
-        const snap=await tx.get(pref); if(!snap.exists)throw new Error("Post not found");
-        const p=snap.data()||{};
-        const comments=Array.isArray(p.comments)?p.comments:[];
-        if(!comments.some(x=>x.id===comment.id))comments.push(clean(comment));
-        tx.update(pref,{comments});
-      });
+      await pref.set({comments:FV.arrayUnion(clean(comment))},{merge:true});
       return true;
-    }catch(e){console.error(e);return false;}
+    }catch(e){console.error("NOVA post comment cloud failed:",e);return false;}
   };
 
   modules.db.deletePostCloud=async function(id){
