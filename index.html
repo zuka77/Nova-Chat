@@ -4046,9 +4046,24 @@ this.show()
   const chatDoc=(a,b)=>fdb.collection("chats").doc([a,b].sort().join("__"));
 
   async function uploadFile(file,folder){
-    if(!file)return "";
-    const data=await NOVA_UPLOAD_TO_CLOUDINARY(file,{folder});
-    return data.secure_url||data.url||"";
+    if(!file)throw new Error("No file selected");
+    let last=null;
+    for(let attempt=1;attempt<=4;attempt++){
+      try{
+        const controller=new AbortController();
+        const timer=setTimeout(()=>controller.abort(),45000);
+        const fd=new FormData();
+        fd.append("file",file); fd.append("upload_preset",window.NOVA_CLOUDINARY.uploadPreset);
+        if(folder)fd.append("folder",folder);
+        const r=await fetch(window.NOVA_CLOUDINARY.uploadUrl,{method:"POST",body:fd,signal:controller.signal});
+        clearTimeout(timer);
+        const d=await r.json().catch(()=>({}));
+        if(r.ok&&!d.error&&(d.secure_url||d.url))return d.secure_url||d.url;
+        throw new Error(d?.error?.message||"Upload unavailable");
+      }catch(e){last=e;await new Promise(x=>setTimeout(x,700*attempt));}
+    }
+    console.error("NOVA upload retry exhausted",last);
+    throw last||new Error("Upload unavailable");
   }
 
   async function ensureProfile(fu, fallback={}){
@@ -4165,27 +4180,11 @@ this.show()
       try{
         if(!auth.session || !modules.db.me())return;
         modules.db.updateNotificationBadge();
+        if(document.body.classList.contains("chat-open"))return;
         if($("modalBg")?.classList.contains("open") || $("viewer")?.classList.contains("open"))return;
         const active=document.activeElement;
-        const screen=NOVA.state?.screen||"home";
-        if(screen==="messages" && NOVA.state?.activeChat){
-          const input=$("messageInput");
-          const focused=active?.id==="messageInput";
-          const value=input?.value ?? "";
-          const start=input?.selectionStart ?? null;
-          const end=input?.selectionEnd ?? null;
-          modules.messages.chat(NOVA.state.activeChat);
-          if(focused && input){
-            input.value=value;
-            input.focus();
-            if(start!==null && end!==null){
-              try{ input.setSelectionRange(start,end); }catch(_){}
-            }
-          }
-          return;
-        }
-        if(active?.id==="commentInput")return;
-        NOVA.render(screen);
+        if(active && ["INPUT","TEXTAREA"].includes(active.tagName))return;
+        NOVA.render(NOVA.state?.screen||"home");
       }catch(e){ console.error("NOVA realtime render failed:",e); }
     },120);
   };
@@ -4262,20 +4261,24 @@ this.show()
         }
       });
       if(activeKey && $("chatMessages")){
-        const input=$("messageInput");
-        const hadFocus=document.activeElement===input;
-        const caret=input?input.selectionStart:null;
-        const val=input?.value||"";
-        const key=activeKey;
-        const arr=this.chats[key]||[];
-        $("chatMessages").innerHTML=arr.map(m=>modules.messages.message(m,NOVA.state.activeChat)).join("");
+        const key=activeKey, arr=this.chats[key]||[], box=$("chatMessages");
+        const signature=arr.map(m=>[m.id,m.time,m.kind,m.text,m.data,m.from,m.to,JSON.stringify(m.reactionBy||{}),JSON.stringify(m.voiceLiked||[])].join("|")).join("~");
+        const changed=box.dataset.novaSignature!==signature;
+        if(changed){
+          const input=$("messageInput");
+          const hadFocus=document.activeElement===input;
+          const caret=input?input.selectionStart:null;
+          const val=input?.value||"";
+          box.innerHTML=arr.map(m=>modules.messages.message(m,NOVA.state.activeChat)).join("");
+          box.dataset.novaSignature=signature;
+          modules.messages.scroll();
+          if(input){
+            input.value=val;
+            if(hadFocus)requestAnimationFrame(()=>{try{input.focus({preventScroll:true});if(caret!=null)input.setSelectionRange(caret,caret)}catch(e){}});
+          }
+        }
         const ts=$("typingStatus");
         if(ts)ts.textContent=activeTyping?`${this.user(activeOther)?.name||"User"} is typing…`:"";
-        modules.messages.scroll();
-        if(input){
-          input.value=val;
-          if(hadFocus){input.focus({preventScroll:true});if(caret!=null)try{input.setSelectionRange(caret,caret)}catch(e){}}
-        }
       }
     });
   };
@@ -4337,6 +4340,18 @@ this.show()
       return false;
     }
   };
+
+  async function novaCloudRetry(job,tries=5){
+    for(let i=0;i<tries;i++){
+      try{if(await job())return true}catch(e){console.error(e)}
+      await new Promise(r=>setTimeout(r,600*(i+1)));
+    }
+    return false;
+  }
+  const novaSavePostCloud=modules.db.savePostCloud.bind(modules.db);
+  modules.db.savePostCloud=id=>novaCloudRetry(()=>novaSavePostCloud(id));
+  const novaSaveStoryCloud=modules.db.saveStoryCloud.bind(modules.db);
+  modules.db.saveStoryCloud=id=>novaCloudRetry(()=>novaSaveStoryCloud(id));
 
   modules.db.postLikeCloud=async function(id,liked){
     const uid=fAuth.currentUser?.uid; if(!uid)return false;
