@@ -4167,8 +4167,24 @@ this.show()
         modules.db.updateNotificationBadge();
         if($("modalBg")?.classList.contains("open") || $("viewer")?.classList.contains("open"))return;
         const active=document.activeElement;
-        if(active?.id==="messageInput" || active?.id==="commentInput")return;
         const screen=NOVA.state?.screen||"home";
+        if(screen==="messages" && NOVA.state?.activeChat){
+          const input=$("messageInput");
+          const focused=active?.id==="messageInput";
+          const value=input?.value ?? "";
+          const start=input?.selectionStart ?? null;
+          const end=input?.selectionEnd ?? null;
+          modules.messages.chat(NOVA.state.activeChat);
+          if(focused && input){
+            input.value=value;
+            input.focus();
+            if(start!==null && end!==null){
+              try{ input.setSelectionRange(start,end); }catch(_){}
+            }
+          }
+          return;
+        }
+        if(active?.id==="commentInput")return;
         NOVA.render(screen);
       }catch(e){ console.error("NOVA realtime render failed:",e); }
     },120);
